@@ -22,10 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
     $telefono = htmlspecialchars($_POST['telefono']);
     
     try {
+        // Generar contraseña de 6 dígitos
+$pass_plain = sprintf("%06d", mt_rand(0, 999999));
+$pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
+        $_SESSION['pass_temporal'] = $pass_plain;
+        
         // Registrar participante
-       $sql_participante = "INSERT INTO participantes (nombre, apellido, email, telefono) VALUES (?, ?, ?, ?)";
+       $sql_participante = "INSERT INTO participantes (nombre, apellido, email, telefono,pass) VALUES (?, ?, ?, ?, ?)";
         $stmt_participante = $database->getConnection()->prepare($sql_participante);
-        $stmt_participante->bind_param("ssss", $nombre, $apellido, $email, $telefono);
+        $stmt_participante->bind_param("sssss", $nombre, $apellido, $email, $telefono, $pass_hash);
 
         if ($stmt_participante->execute()) {
             $id_participante = $stmt_participante->insert_id;
@@ -42,18 +47,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
             
             $stmt_inscripcion = $database->getConnection()->prepare($sql_inscripcion);
             $stmt_inscripcion->bind_param("iis", $curso['id_curso'], $id_participante, $estado);
-            
+
             if (!$stmt_inscripcion->execute()) {
                 throw new Exception("Error al inscribir: " . $stmt_inscripcion->error);
             }
+            $_SESSION['participante_id'] = $id_participante;
+            $_SESSION['email'] = $email;
+            $_SESSION['nombre'] = $nombre . ' ' . $apellido;
             
             $stmt_inscripcion->close();
+            $registro_exitoso = true;
         } else {
             throw new Exception("Error al registrar participante: " . $stmt_participante->error);
         }
-        
-        $registro_exitoso = true;
-        
+
+
         // Aquí podrías agregar lógica para enviar correo de confirmación
     } catch (Exception $e) {
         $error = "Error al registrar: " . $e->getMessage();
@@ -103,14 +111,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
                             
                             <?php if ($curso['requiere_pago']): ?>
                                 <div class="alert alert-warning">
-                                    <h5><i class="fas fa-money-bill-wave"></i> Pago Requerido</h5>
+                                    <h5><i class="fas fa-money-bill-wave"></i> Gracias por tu registro</h5>
                                     <p>Para completar tu inscripción, por favor realiza el pago de $<?= number_format($curso['costo'], 2) ?></p>
-                                    <a href="#" class="btn btn-success">Proceder al Pago</a>
+                                    <p>Tu contraseña temporal es <?= $_SESSION['pass_temporal'] ?></p>
+                                    <p>Pasaremos al panel en 10 segundos</p>
+                                    <a class="btn btn-primary" href="bienvenida.php">Ir al panel</a>
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-success">
                                     <h5><i class="fas fa-envelope"></i> Confirmación</h5>
-                                    <p>Hemos enviado los detalles del curso a tu correo electrónico.</p>
+                                    <p>Pasaremos al panel en 10 segundos</p>
+                                     <p>Tu contraseña temporal es <?= $_SESSION['pass_temporal'] ?></p>
+                                    <a class="btn btn-primary" href="bienvenida.php">Ir al panel</a>
                                 </div>
                             <?php endif; ?>
                             
@@ -166,7 +178,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
                                     <button type="submit" class="btn btn-primary btn-lg">
                                         <i class="fas fa-check"></i> Confirmar Registro
                                     </button>
+                                    <a href="participantePanel/login.php?clave=<?php echo $_GET['clave']; ?>" class="btn btn-secondary btn-lg mt-2">
+                                        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                                    </a>
                                 </div>
+
                             </form>
                         </div>
                     </div>

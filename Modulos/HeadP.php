@@ -6,8 +6,6 @@
 
 			ini_set('display_errors', 1);
 
-session_start();
-
 header('Content-Type: text/html; charset=utf-8');
 
 
@@ -53,9 +51,9 @@ header('Content-Type: text/html; charset=utf-8');
     />
 
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Fonts and icons -->
 
+    <!-- Fonts and icons -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/assets/js/plugin/webfont/webfont.min.js"></script>
 
     <script>
@@ -191,41 +189,8 @@ header('Content-Type: text/html; charset=utf-8');
 
       </li>
 
-                 <li class="nav-item ">
 
-        <a class="nav-link" href="/Participantes/index.php"><i class="fas fa-users"></i>Participantes    <span class="sr-only"></span></a>
-
-      </li>
-
-	   <li class="nav-item ">
-
-        <a class="nav-link" href="/Usuarios/index.php"><i class="fas fa-user"></i>Psicologos <span class="sr-only"></span></a>
-
-      </li>
-
-
-
-
-
-      <?php $rol = isset($_SESSION['rol']) ? $_SESSION['rol'] : 0;
-
-      
-
-      if ($rol == 4) {?>
-
-	  	   <li class="nav-item ">
-
-        <a class="nav-link" href="/Reportes/index.php"><i class="fas fa-chart-pie"></i>Reportes <span class="sr-only"></span></a>
-
-      </li>
-
-      <li class="nav-item ">
-
-        <a class="nav-link" href="/Configuracion/index.php"><i class="fas fa-hammer"></i>Configuración <span class="sr-only"></span></a>
-
-      </li>  
-
-      <?php } ?>
+    
 
 
 

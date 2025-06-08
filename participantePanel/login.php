@@ -3,43 +3,52 @@ session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_once '../DB/Conexion.php';
-    $database = new Database();
-    
     $email = $_POST['email'];
-    $telefono = $_POST['telefono'];
-    
-    $stmt = $database->getConnection()->prepare("SELECT id_participante, nombre, apellido FROM participantes WHERE email = ? AND telefono = ?");
-    $stmt->bind_param("ss", $email, $telefono);
+    $pass = $_POST['pass'];
+    $database = new Database();
+
+    $stmt = $database->getConnection()->prepare("SELECT id_participante, nombre, apellido, pass FROM participantes WHERE email = ?");
+    $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result->num_rows === 1) {
         $participante = $result->fetch_assoc();
-        $_SESSION['participante_id'] = $participante['id_participante'];
-        $_SESSION['email'] = $email;
-        $_SESSION['nombre'] = $participante['nombre'] . ' ' . $participante['apellido'];
-        
-        header("Location: panel_usuario.php");
-        exit();
+        if (password_verify($pass, $participante['pass'])) {
+            $_SESSION['participante_id'] = $participante['id_participante'];
+            $_SESSION['email'] = $email;
+            $_SESSION['nombre'] = $participante['nombre'] . ' ' . $participante['apellido'];
+            $clave_curso = $_GET['clave'] ?? null;
+
+            if ($clave_curso) {
+            header("Location: index.php?clave=" . urlencode($clave_curso));
+            }
+            else {
+                header("Location: index.php");
+            }
+
+            exit();
+        } else {
+            $error = "Contraseña incorrecta";
+        }
     } else {
-        $error = "Credenciales incorrectas. Intente nuevamente.";
+        $error = "Usuario no encontrado";
     }
 }
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Iniciar Sesión</title>
-<link
+    <link
 
-      rel="icon"
+        rel="icon"
 
-      href="/assets/img/kaiadmin/favicon.ico"
+        href="/assets/img/kaiadmin/favicon.ico"
 
-      type="image/x-icon"
-
-    />
+        type="image/x-icon" />
 
 
 
@@ -48,37 +57,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="/assets/js/plugin/webfont/webfont.min.js"></script>
 
     <script>
+        WebFont.load({
 
-      WebFont.load({
+            google: {
+                families: ["Public Sans:300,400,500,600,700"]
+            },
 
-        google: { families: ["Public Sans:300,400,500,600,700"] },
+            custom: {
 
-        custom: {
+                families: [
 
-          families: [
+                    "Font Awesome 5 Solid",
 
-            "Font Awesome 5 Solid",
+                    "Font Awesome 5 Regular",
 
-            "Font Awesome 5 Regular",
+                    "Font Awesome 5 Brands",
 
-            "Font Awesome 5 Brands",
+                    "simple-line-icons",
 
-            "simple-line-icons",
+                ],
 
-          ],
+                urls: ["/assets/css/fonts.min.css"],
 
-          urls: ["/assets/css/fonts.min.css"],
+            },
 
-        },
+            active: function() {
 
-        active: function () {
+                sessionStorage.fonts = true;
 
-          sessionStorage.fonts = true;
+            },
 
-        },
-
-      });
-
+        });
     </script>
 
 
@@ -86,9 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- CSS Files -->
 
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css" />
-
     <link rel="stylesheet" href="/assets/css/plugins.min.css" />
-
     <link rel="stylesheet" href="/assets/css/kaiadmin.min.css" />
 
 
@@ -96,10 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- CSS Just for demo purpose, don't include it in your project -->
 
     <link rel="stylesheet" href="/assets/css/demo.css" />
-
-<link href="https://cdn.datatables.net/v/dt/dt-2.0.8/datatables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/v/dt/dt-2.0.8/datatables.min.css" rel="stylesheet">
 
 </head>
+
 <body>
     <div class="container mt-5">
         <div class="row justify-content-center">
@@ -112,21 +119,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php if (isset($error)): ?>
                             <div class="alert alert-danger"><?= $error ?></div>
                         <?php endif; ?>
-                        
+
                         <form method="POST">
                             <div class="form-group">
                                 <label>Correo Electrónico</label>
                                 <input type="email" name="email" class="form-control" required>
                             </div>
-                            
+
                             <div class="form-group">
-                                <label>Teléfono</label>
-                                <input type="text" name="telefono" class="form-control" required>
+                                <label>Contraseña</label>
+                                <input type="password" name="pass" class="form-control" required>
                             </div>
-                            
+
                             <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
                         </form>
-                        
+
                         <div class="mt-3">
                             <p>¿No tienes cuenta? <a href="registro.php">Regístrate aquí</a></p>
                         </div>
@@ -135,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-        <!--   Core JS Files   -->
+    <!--   Core JS Files   -->
     <script src="/assets/js/core/jquery-3.7.1.min.js"></script>
     <script src="/assets/js/core/popper.min.js"></script>
     <script src="/assets/js/core/bootstrap.min.js"></script>
@@ -151,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="/assets/js/plugin/datatables/datatables.min.js"></script>
     <!-- Bootstrap Notify -->
     <script src="/assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js"></script>
-   <!-- jQuery Vector Maps -->
+    <!-- jQuery Vector Maps -->
     <script src="/assets/js/plugin/jsvectormap/jsvectormap.min.js"></script>
     <script src="/assets/js/plugin/jsvectormap/world.js"></script>
     <!-- Sweet Alert -->
@@ -159,4 +166,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Kaiadmin JS -->
     <script src="/assets/js/kaiadmin.min.js"></script>
 </body>
+
 </html>

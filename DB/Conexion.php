@@ -345,21 +345,24 @@ public function getInscripcionesTable($id_curso = null) {
                     <th>Estado</th>
                     <th>Método Pago</th>
                     <th>Monto</th>
+                    <th>Comprobante</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>';
 
-    // Consulta base con JOINs
+    // Consulta mejorada para incluir comprobante_path
     $query = "SELECT 
                 i.id_inscripcion, 
                 i.id_curso, 
                 i.id_participante,
-                DATE_FORMAT(i.fecha_inscripcion, '%d/%m/%Y %H:%i') as fecha_inscripcion,
                 i.estado,
                 i.metodo_pago,
                 i.monto_pagado,
-                c.nombre_curso as nombre_curso,
+                i.comprobante_path,
+                i.fecha_inscripcion,
+                i.fecha_cambio_estado,
+                c.nombre_curso,
                 p.nombre as nombre_participante,
                 p.apellido as apellido_participante,
                 p.email as email_participante,
@@ -368,7 +371,6 @@ public function getInscripcionesTable($id_curso = null) {
               LEFT JOIN cursos c ON i.id_curso = c.id_curso
               LEFT JOIN participantes p ON i.id_participante = p.id_participante";
     
-    // Añadir filtro por curso si se especifica
     if ($id_curso !== null) {
         $query .= " WHERE i.id_curso = " . intval($id_curso);
     }
@@ -377,7 +379,6 @@ public function getInscripcionesTable($id_curso = null) {
     
     $result = $this->conn->query($query);
 
-    // Manejo de errores
     if ($result === false) {
         error_log("Error en consulta: " . $this->conn->error);
         return '<div class="alert alert-danger">Error al cargar inscripciones: ' . htmlspecialchars($this->conn->error) . '</div>';
@@ -385,59 +386,73 @@ public function getInscripcionesTable($id_curso = null) {
 
     if ($result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
-            // Estilo según estado
             $badgeClass = [
                 'registrado' => 'bg-secondary',
+                'pendiente_pago' => 'bg-warning',
                 'comprobante_enviado' => 'bg-info',
+                'revision_pago' => 'bg-primary',
                 'pago_validado' => 'bg-success',
                 'rechazado' => 'bg-danger'
             ];
+            
+            // Formatear fechas
+            $fecha_inscripcion = date('d/m/Y H:i', strtotime($row['fecha_inscripcion']));
+            $fecha_cambio = $row['fecha_cambio_estado'] ? date('d/m/Y H:i', strtotime($row['fecha_cambio_estado'])) : 'N/A';
+            
+            // Botón de comprobante
+            $botonComprobante = $row['comprobante_path'] 
+                ? '<button class="btn btn-sm btn-info ver-comprobante" 
+                     data-id="'.$row['id_inscripcion'].'" 
+                     data-archivo="'.$row['comprobante_path'].'">
+                     <i class="fas fa-file-invoice"></i> Ver
+                   </button>'
+                : 'N/A';
             
             $html .= '
             <tr>
                 <td>'.$row["id_inscripcion"].'</td>
                 <td>
                     <strong>'.htmlspecialchars($row["nombre_participante"]).' '.htmlspecialchars($row["apellido_participante"]).'</strong><br>
-                    <small class="text-muted">ID: '.$row["id_participante"].'</small><br>
-                    <small class="text-muted">'.htmlspecialchars($row["email_participante"]).'</small><br>
-                    <small class="text-muted">'.htmlspecialchars($row["telefono_participante"]).'</small>
+                    <small class="text-muted">'.$row["email_participante"].'</small>
                 </td>
-                <td>'.$row["fecha_inscripcion"].'</td>
+                <td>'.$fecha_inscripcion.'</td>
                 <td>
                     <span class="badge '.$badgeClass[$row["estado"]].'">
                         '.ucfirst(str_replace('_', ' ', $row["estado"])).'
-                    </span>
+                    </span><br>
+                    <small>'.$fecha_cambio.'</small>
                 </td>
-                <td>'.($row["metodo_pago"] ? htmlspecialchars($row["metodo_pago"]) : 'N/A').'</td>
+                <td>'.($row["metodo_pago"] ?: 'N/A').'</td>
                 <td class="text-end">'.($row["monto_pagado"] ? '$'.number_format($row["monto_pagado"], 2) : 'N/A').'</td>
+                <td class="text-center">'.$botonComprobante.'</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-info" onclick="verDetalleInscripcion('.$row['id_inscripcion'].')" title="Ver detalles">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-primary" onclick="editarInscripcion('.$row['id_inscripcion'].')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning dropdown-toggle" data-bs-toggle="dropdown" title="Cambiar estado">
-                            <i class="fas fa-exchange-alt"></i>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-primary" onclick="editarInscripcion('.$row['id_inscripcion'].')" title="Editar">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="cambiarEstadoInscripcion('.$row['id_inscripcion'].', \'registrado\')">Registrado</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="cambiarEstadoInscripcion('.$row['id_inscripcion'].', \'comprobante_enviado\')">Comprobante Enviado</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="cambiarEstadoInscripcion('.$row['id_inscripcion'].', \'pago_validado\')">Pago Validado</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="cambiarEstadoInscripcion('.$row['id_inscripcion'].', \'rechazado\')">Rechazado</a></li>
-                        </ul>
+                        
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" title="Cambiar estado">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item cambiar-estado" href="#" data-id="'.$row['id_inscripcion'].'" data-estado="registrado">Registrado</a></li>
+                                <li><a class="dropdown-item cambiar-estado" href="#" data-id="'.$row['id_inscripcion'].'" data-estado="pendiente_pago">Pendiente Pago</a></li>
+                                <li><a class="dropdown-item cambiar-estado" href="#" data-id="'.$row['id_inscripcion'].'" data-estado="comprobante_enviado">Comprobante Enviado</a></li>
+                                <li><a class="dropdown-item cambiar-estado" href="#" data-id="'.$row['id_inscripcion'].'" data-estado="pago_validado">Pago Validado</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item rechazar-inscripcion" href="#" data-id="'.$row['id_inscripcion'].'">Rechazar</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </td>
             </tr>';
         }
     } else {
-        $html .= '<tr><td colspan="7" class="text-center">No hay inscripciones registradas'.($id_curso ? ' para este curso' : '').'</td></tr>';
+        $html .= '<tr><td colspan="8" class="text-center">No hay inscripciones registradas'.($id_curso ? ' para este curso' : '').'</td></tr>';
     }
 
-    $html .= '</tbody>
-        </table>
-    </div>';
+    $html .= '</tbody></table></div>';
 
     return $html;
 }
