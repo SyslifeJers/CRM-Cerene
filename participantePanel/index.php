@@ -12,7 +12,7 @@ require_once '../DB/Conexion.php';
 $database = new Database();
 
 $participante_id = $_SESSION['participante_id'];
-$query = "SELECT i.id_inscripcion, c.nombre_curso, i.estado, i.fecha_inscripcion 
+$query = "SELECT i.id_inscripcion, c.clave_curso, c.nombre_curso, i.estado, i.fecha_inscripcion 
           FROM inscripciones i
           JOIN cursos c ON i.id_curso = c.id_curso
           WHERE i.id_participante = ?";
@@ -62,6 +62,13 @@ $result = $stmt->get_result();
                                 data-curso="<?= htmlspecialchars($row['nombre_curso']) ?>">
                             <i class="fas fa-upload"></i> Subir comprobante
                         </button>
+                      <?php endif; ?>
+                       <?php if ($row['estado'] == 'pago_validado'): ?>
+                        <a href="curso/contenido.php?clave=<?= $row['clave_curso'] ?>" class="btn btn-sm btn-primary">
+
+                        Ir al Curso
+                        </a>
+
                       <?php endif; ?>
                     </td>
                   </tr>

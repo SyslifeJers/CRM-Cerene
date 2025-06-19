@@ -8,7 +8,6 @@ $database = new Database();
 
 // Obtener ID del curso desde GET
 $id_curso = isset($_GET['id_curso']) ? intval($_GET['id_curso']) : null;
-echo '<h1>'.$id_curso.'</h1>';
 // Verificar si se proporcionó un ID de curso válido
 if ($id_curso === null) {
     die('<div class="alert alert-danger">Debe especificar un ID de curso válido</div>');
@@ -29,6 +28,12 @@ if ($result_curso->num_rows > 0) {
 ?>
 
 <div class="row">
+    <form method="POST" action="enviar_correo_masivo.php" target="_blank">
+    <input type="hidden" name="id_curso" value="<?php echo $id_curso; ?>">
+    <button type="submit" class="btn btn-primary mb-3">
+        <i class="fas fa-envelope"></i> Enviar correo a todos los inscritos
+    </button>
+</form>
   <div class="col-md-12">
     <div class="card">
       <div class="card-header">

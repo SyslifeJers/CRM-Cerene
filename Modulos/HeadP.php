@@ -180,12 +180,12 @@ header('Content-Type: text/html; charset=utf-8');
 
              <li class="nav-item active">			  
 
-        <a class="nav-link" href="/index.php"> <i class="fas fa-home"></i>Inicio <span class="sr-only"></span></a>
+        <a class="nav-link" href="/participantePanel/index.php"> <i class="fas fa-home"></i>Inicio <span class="sr-only"></span></a>
 
       </li>
       	   <li class="nav-item ">
 
-        <a class="nav-link" href="/Cursos/index.php"><i class="fas fa-clipboard"></i>Curso <span class="sr-only"></span></a>
+        <a class="nav-link" href="/participantePanel/index.php"><i class="fas fa-clipboard"></i>Cursos <span class="sr-only"></span></a>
 
       </li>
 
