@@ -119,7 +119,7 @@ while ($row = $resEstados->fetch_assoc()) {
     <div class="col-md-12">
       <div class="card shadow">
         <div class="card-header bg-secondary text-white">
-          <h5 class="mb-0"><i class="fas fa-home"></i> Bienvenido al Panel Administrativo</h5>
+          <h5 class="mb-0"><i class="fas fa-home"></i> Estadisticas</h5>
         </div>
         <div class="card-body">
           <div class="row">

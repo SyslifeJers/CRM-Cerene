@@ -11,13 +11,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $conn = $database->getConnection();
 
     // Validar usuario
-    $stmt = $conn->prepare("SELECT id, pass, IdRol FROM Usuarios WHERE user = ?");
+    $stmt = $conn->prepare("SELECT id, pass, IdRol, name FROM Usuarios WHERE user = ?");
     $stmt->bind_param("s", $user);
     $stmt->execute();
     $stmt->store_result();
 
     if ($stmt->num_rows > 0) {
-        $stmt->bind_result($id, $hash, $idRol);
+        $stmt->bind_result($id, $hash, $idRol, $name);
         $stmt->fetch();
 
         if (strcmp($pass, $hash) == 0) {
@@ -27,8 +27,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['idAdmin'] = $id;
             $_SESSION['user'] = $user;
             $_SESSION['rol'] = $idRol;
-
-            header("Location: IndexAdmin.php");
+                $_SESSION['name'] = $name;
+            header("Location: Admin/index.php");
             exit();
         } else {
             $message = "Contraseña incorrecta.";

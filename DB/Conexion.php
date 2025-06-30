@@ -75,7 +75,7 @@ class Database
               LEFT JOIN inscripciones i ON c.id_curso = i.id_curso
               WHERE " . ($filtro_activos ? "c.activo = 1" : "1") . "
               GROUP BY c.id_curso
-              ORDER BY c.fecha_inicio DESC";
+              ORDER BY c.id_curso DESC";
 
         $result = $this->conn->query($query);
 

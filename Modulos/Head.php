@@ -177,7 +177,7 @@ if (empty($_SESSION['idAdmin'])) {
 
              <li class="nav-item active">			  
 
-        <a class="nav-link" href="/Cursos/index.php"> <i class="fas fa-home"></i>Inicio <span class="sr-only"></span></a>
+        <a class="nav-link" href="/Admin/index.php"> <i class="fas fa-home"></i>Inicio <span class="sr-only"></span></a>
 
       </li>
       	   <li class="nav-item ">
@@ -306,7 +306,7 @@ if (empty($_SESSION['idAdmin'])) {
 
                       <span class="op-7">Hi,</span>
 
-                      <span class="fw-bold"><?php // echo $_SESSION['user']; ?></span>
+                      <span class="fw-bold"><?php echo $_SESSION['name']; ?></span>
 
                     </span>
 
