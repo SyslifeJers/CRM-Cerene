@@ -197,6 +197,9 @@ if (empty($_SESSION['idAdmin'])) {
         <a class="nav-link" href="/Usuarios/index.php"><i class="fas fa-user"></i>Usuarios <span class="sr-only"></span></a>
 
       </li>
+      <li class="nav-item ">
+        <a class="nav-link" href="/Guias/index.php"><i class="fas fa-book"></i>Guías <span class="sr-only"></span></a>
+      </li>
 
             </ul>
 
