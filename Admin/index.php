@@ -46,7 +46,7 @@ while ($row = $resEstados->fetch_assoc()) {
           <p class="card-text fs-4"><?= $cont_usuarios ?></p>
         </div>
         <div class="card-footer bg-transparent border-top-0">
-          <a href="usuarios.php" class="text-white">Ver usuarios <i class="fas fa-arrow-right"></i></a>
+          <a href="../Usuarios/index.php" class="text-white">Ver usuarios <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
     </div>
@@ -59,7 +59,7 @@ while ($row = $resEstados->fetch_assoc()) {
           <p class="card-text fs-4"><?= $cont_participantes ?></p>
         </div>
         <div class="card-footer bg-transparent border-top-0">
-          <a href="participantes.php" class="text-white">Ver participantes <i class="fas fa-arrow-right"></i></a>
+          <a href="../Participantes/index.php" class="text-white">Ver participantes <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
     </div>
@@ -72,7 +72,7 @@ while ($row = $resEstados->fetch_assoc()) {
           <p class="card-text fs-4"><?= $cont_cursos ?></p>
         </div>
         <div class="card-footer bg-transparent border-top-0">
-          <a href="cursos/index.php" class="text-white">Ver cursos <i class="fas fa-arrow-right"></i></a>
+          <a href="../Cursos/index.php" class="text-white">Ver cursos <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
     </div>
@@ -85,7 +85,7 @@ while ($row = $resEstados->fetch_assoc()) {
           <p class="card-text fs-4"><?= $cont_inscripciones ?></p>
         </div>
         <div class="card-footer bg-transparent border-top-0">
-          <a href="inscripciones.php" class="text-white">Ver inscripciones <i class="fas fa-arrow-right"></i></a>
+          <a href="../Inscripciones/index.php" class="text-white">Ver inscripciones <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
     </div>
