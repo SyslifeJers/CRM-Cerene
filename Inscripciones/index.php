@@ -2,7 +2,7 @@
 
 
 
-include '../Modulos/head.php';
+include '../Modulos/Head.php';
 
 ?>
 
@@ -32,5 +32,5 @@ include '../Modulos/head.php';
   </div>
 </div>
 
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>
 

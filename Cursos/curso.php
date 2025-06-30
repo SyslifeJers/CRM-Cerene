@@ -1,5 +1,5 @@
 <?php
-include '../Modulos/head.php';
+include '../Modulos/Head.php';
 
 $id_curso = $_GET['id'] ?? null;
 require_once '../DB/Conexion.php';
@@ -50,7 +50,7 @@ if (!$id_curso || !$curso = $database->getCursoById($id_curso)) {
   </div>
 </div>
 
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>
 
 <script>
 // Función para copiar enlaces
@@ -127,4 +127,70 @@ document.querySelectorAll('[data-tab]').forEach(tab => {
 document.addEventListener('DOMContentLoaded', function() {
     cargarContenidoTab('contenido');
 });
+</script>
+<script>
+    function eliminarReunion(id_reunion, id_curso) {
+    Swal.fire({
+        title: "¿Estás seguro?️",
+        text: "Esta acción eliminará la reunión y no se puede deshacer.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "reuniones/eliminar_reunion.php",
+                type: "POST",
+                data: {
+                    id_reunion: id_reunion,
+                    id_curso: id_curso
+                },
+                dataType: "json",
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire("Eliminada", response.message, "success");
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        Swal.fire("Error", response.message, "error");
+                    }
+                },
+                error: function() {
+                    Swal.fire("Error", "No se pudo conectar con el servidor.", "error");
+                }
+            });
+        }
+    });
+}
+function eliminarContenido(id_contenido) {
+    Swal.fire({
+        title: "¿Estás seguro?",
+        text: "El contenido será eliminado permanentemente.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "contenido/eliminar.php",
+                type: "POST",
+                data: { id_contenido: id_contenido },
+                dataType: "json",
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire("Eliminado", response.message, "success");
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        Swal.fire("Error", response.message, "error");
+                    }
+                },
+                error: function() {
+                    Swal.fire("Error", "No se pudo conectar con el servidor.", "error");
+                }
+            });
+        }
+    });
+}
+
 </script>

@@ -1,9 +1,9 @@
 <?php
-include '../Modulos/head.php';
+include '../Modulos/Head.php';
 
 $id_curso = $_GET['id_curso'] ?? null;
 if (!$id_curso) {
-    header("Location: ../../cursos.php?error=curso_no_seleccionado");
+    header("Location: cursos.php?error=curso_no_seleccionado");
     exit();
 }
 ?>
@@ -13,7 +13,7 @@ if (!$id_curso) {
     <div class="card">
       <div class="card-header">
         <h4 class="card-title">Agregar Nuevo Contenido</h4>
-        <a href="../curso.php?id=<?= $id_curso ?>" class="btn btn-secondary float-right">Volver al Curso</a>
+        <a href="curso.php?id=<?= $id_curso ?>" class="btn btn-secondary float-right">Volver al Curso</a>
       </div>
       <div class="card-body">
         <form action="procesar_contenido.php" method="POST" enctype="multipart/form-data">
@@ -60,7 +60,7 @@ if (!$id_curso) {
 
 
 
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>
 
 <script>
 // Manejar cambios en el tipo de contenido

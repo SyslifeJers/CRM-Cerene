@@ -2,7 +2,7 @@
 
 
 
-include '../Modulos/head.php';
+include '../Modulos/Head.php';
 require_once '../DB/Conexion.php';
 $database = new Database();
 
@@ -59,7 +59,7 @@ if ($result_curso->num_rows > 0) {
   </div>
 </div>
 
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>
 
 
     <!-- Modal Comprobante -->
@@ -92,6 +92,7 @@ if ($result_curso->num_rows > 0) {
                             <label class="form-label">Detalles Adicionales</label>
                             <textarea class="form-control" name="detalle" rows="3"></textarea>
                         </div>
+                                  <button type="submit" class="btn btn-danger">Confirmar Rechazo</button>
                     </form>
                 </div>
                 <div class="modal-footer">

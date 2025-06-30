@@ -5,7 +5,7 @@ if (!isset($_SESSION['participante_id'])) {
     exit();
 }
  $clave_curso = $_GET['clave'] ?? null;
-include '../Modulos/headP.php';
+include '../Modulos/HeadP.php';
 
 // Obtener información del participante y sus inscripciones
 require_once '../DB/Conexion.php';
@@ -86,6 +86,8 @@ $result = $stmt->get_result();
               <div class="card-body">
                 <p><strong>Nombre:</strong> <?= htmlspecialchars($_SESSION['nombre']) ?></p>
                 <p><strong>Email:</strong> <?= htmlspecialchars($_SESSION['email']) ?></p>
+                <a href="mi_perfil.php" class="btn btn-primary">Mi perfil</a>
+                <hR>
                 <a href="logout.php" class="btn btn-danger">Cerrar Sesión</a>
               </div>
             </div>
@@ -316,4 +318,4 @@ document.getElementById('formAgregarCurso').addEventListener('submit', function(
     });
 });
 </script>
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>

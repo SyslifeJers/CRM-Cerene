@@ -135,4 +135,4 @@ $data = $result->fetch_assoc();
 // Mismo script para manejar el modal que en index.php
 </script>
 
-<?php include '../../Modulos/footer.php'; ?>
+<?php include '../../Modulos/Footer.php'; ?>

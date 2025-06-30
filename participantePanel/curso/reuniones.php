@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('America/Mexico_City');
 if (!isset($_SESSION['participante_id'])) {
     header("Location: ../login.php");
     exit();
@@ -17,7 +18,6 @@ require_once '../../DB/Conexion.php';
 $database = new Database();
 $participante_id = $_SESSION['participante_id'];
 
-// Verificar que el participante está inscrito en el curso
 $query = "SELECT c.id_curso, c.nombre_curso, i.estado 
           FROM cursos c
           JOIN inscripciones i ON c.id_curso = i.id_curso
@@ -34,8 +34,6 @@ if ($result->num_rows === 0) {
 
 $curso = $result->fetch_assoc();
 $id_curso = $curso['id_curso'];
-
-// Obtener reuniones del curso
 $reuniones = $database->getReunionesZoomParticipante($id_curso);
 ?>
 
@@ -56,77 +54,67 @@ $reuniones = $database->getReunionesZoomParticipante($id_curso);
                         </div>
                     </div>
                 </div>
-                
                 <div class="card-body">
                     <h5 class="card-title"><i class="fas fa-video"></i> Reuniones Programadas</h5>
-                    
+
                     <?php if (empty($reuniones)): ?>
-                        <div class="alert alert-info">
-                            No hay reuniones programadas para este curso.
-                        </div>
+                        <div class="alert alert-info">No hay reuniones programadas para este curso.</div>
                     <?php else: ?>
-                        <div class="list-group">
-                            <?php foreach ($reuniones as $reunion): 
-                                $fecha_reunion = new DateTime($reunion['fecha_hora']);
-                                $fin_reunion = (clone $fecha_reunion)->add(new DateInterval('PT'.$reunion['duracion_minutos'].'M'));
-                                $ahora = new DateTime();
-                                
-                                $estado = '';
-                                $boton = '';
-                                
-                                if ($ahora < $fecha_reunion) {
-                                    $estado = 'badge-info';
-                                    $texto_estado = 'Programada';
-                                } elseif ($ahora >= $fecha_reunion && $ahora <= $fin_reunion) {
-                                    $estado = 'badge-success';
-                                    $texto_estado = 'En vivo';
-                                    $boton = '<a href="'.htmlspecialchars($reunion['url_zoom']).'" 
-                                               target="_blank" 
-                                               class="btn btn-sm btn-success">
-                                                <i class="fas fa-video"></i> Unirse ahora
-                                              </a>';
-                                } else {
-                                    $estado = 'badge-secondary';
-                                    $texto_estado = 'Finalizada';
-                                    if (!empty($reunion['grabacion_url'])) {
-                                        $boton = '<a href="'.htmlspecialchars($reunion['grabacion_url']).'" 
-                                                   target="_blank" 
-                                                   class="btn btn-sm btn-info">
-                                                    <i class="fas fa-play-circle"></i> Ver grabación
-                                                  </a>';
-                                    }
-                                }
-                            ?>
-                                <div class="list-group-item mb-3">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5><?= htmlspecialchars($reunion['titulo']) ?></h5>
-                                        <span class="badge <?= $estado ?>"><?= $texto_estado ?></span>
-                                    </div>
-                                    
-                                    <div class="row mt-2">
-                                        <div class="col-md-6">
-                                            <p><i class="fas fa-calendar-alt"></i> <strong>Fecha:</strong> 
-                                            <?= $fecha_reunion->format('d/m/Y H:i') ?></p>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <p><i class="fas fa-clock"></i> <strong>Duración:</strong> 
-                                            <?= $reunion['duracion_minutos'] ?> minutos</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <?php if (!empty($reunion['descripcion'])): ?>
-                                        <p class="mt-2"><?= nl2br(htmlspecialchars($reunion['descripcion'])) ?></p>
-                                    <?php endif; ?>
-                                    
-                                    <div class="d-flex justify-content-between mt-3">
-                                        <button onclick="copiarEnlace('<?= htmlspecialchars($reunion['url_zoom']) ?>')" 
-                                                class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-copy"></i> Copiar enlace
-                                        </button>
-                                        <?= $boton ?>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Título</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Duración</th>
+                                        <th>Estado</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($reuniones as $reunion): 
+                                        $fecha_reunion = new DateTime($reunion['fecha_hora']);
+                                        $fin_reunion = (clone $fecha_reunion)->add(new DateInterval('PT'.$reunion['duracion_minutos'].'M'));
+                                        $inicio_visible = (clone $fecha_reunion)->sub(new DateInterval('PT15M'));
+                                        $ahora = new DateTime();
+
+                                        $estado = '';
+                                        $texto_estado = '';
+                                        $boton = '';
+
+                                        if ($ahora < $inicio_visible) {
+                                            $estado = 'info';
+                                            $texto_estado = 'Programada';
+                                        } elseif ($ahora >= $inicio_visible && $ahora <= $fin_reunion) {
+                                            $estado = 'success';
+                                            $texto_estado = 'En vivo';
+                                            $boton = '<a href="'.htmlspecialchars($reunion['url_zoom']).'" target="_blank" class="btn btn-sm btn-success"><i class="fas fa-video"></i> Unirse</a>';
+                                        } else {
+                                            $estado = 'secondary';
+                                            $texto_estado = 'Finalizada';
+                                            if (!empty($reunion['grabacion_url'])) {
+                                                $boton = '<a href="'.htmlspecialchars($reunion['grabacion_url']).'" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-play-circle"></i> Ver grabación</a>';
+                                            }
+                                        }
+                                    ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($reunion['titulo']) ?></td>
+                                        <td><?= $fecha_reunion->format('d/m/Y H:i') ?></td>
+                                        <td><?= $reunion['duracion_minutos'] ?> min</td>
+                                        <td><span class="badge bg-<?= $estado ?>"><?= $texto_estado ?></span></td>
+                                        <td>
+                                            <?php if ($ahora >= $inicio_visible && $ahora <= $fin_reunion): ?>
+                                                <button onclick="copiarEnlace('<?= htmlspecialchars($reunion['url_zoom']) ?>')" class="btn btn-outline-secondary btn-sm mb-1">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                                <div id="contador_<?= $reunion['id_reunion'] ?>" class="text-muted small"></div>
+                                            <?php endif; ?>
+                                            <?= $boton ?>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -140,6 +128,39 @@ function copiarEnlace(enlace) {
     navigator.clipboard.writeText(enlace);
     alert('Enlace copiado al portapapeles: ' + enlace);
 }
+
+function iniciarContador(id, fechaInicioStr) {
+    const contador = document.getElementById("contador_" + id);
+    const inicio = new Date(fechaInicioStr).getTime();
+
+    function actualizar() {
+        const ahora = new Date().getTime();
+        const diferencia = inicio - ahora;
+
+        if (diferencia <= 0) {
+            contador.innerHTML = "¡Ya inició!";
+            return;
+        }
+
+        const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+        const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+        contador.innerHTML = `Inicia en ${minutos}m ${segundos}s`;
+        setTimeout(actualizar, 1000);
+    }
+
+    actualizar();
+}
+
+window.addEventListener('load', function () {
+    <?php foreach ($reuniones as $reunion): 
+        $fecha_reunion = new DateTime($reunion['fecha_hora']);
+        $fin_reunion = (clone $fecha_reunion)->add(new DateInterval('PT' . $reunion['duracion_minutos'] . 'M'));
+        $inicio_visible = (clone $fecha_reunion)->sub(new DateInterval('PT15M'));
+        $ahora = new DateTime();
+        if ($ahora >= $inicio_visible && $ahora <= $fin_reunion): ?>
+            iniciarContador("<?= $reunion['id_reunion'] ?>", "<?= $fecha_reunion->format('Y-m-d H:i:s') ?>");
+    <?php endif; endforeach; ?>
+});
 </script>
 
-<?php include '../../Modulos/footer.php'; ?>
+<?php include '../../Modulos/Footer.php'; ?>

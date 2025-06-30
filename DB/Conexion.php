@@ -5,11 +5,11 @@ class Database
 
     private $servername = "localhost";
 
-    private $username = "cereneUser";
+    private $username = "clini234_cerene";
 
-    private $password = "Rtx2080_";
+    private $password = "tu{]ScpQ-Vcg";
 
-    private $dbname = "crmcerene";
+    private $dbname = "clini234_cerene";
 
     private $conn;
 
@@ -139,7 +139,7 @@ class Database
                 <td class="text-center">
                     <div class="btn-group btn-group-sm" role="group">
 
-                        <a href="contenido.php?id=' . $row['id_curso'] . '" class="btn btn-primary" title="Editar">
+                        <a href="editar.php?id=' . $row['id_curso'] . '" class="btn btn-primary" title="Editar">
                             <i class="fas fa-edit"></i>
                         </a>
                         <a href="/Participantes/index.php?id_curso=' . $row['id_curso'] . '" class="btn btn-success" title="Inscripciones">
@@ -531,7 +531,7 @@ class Database
                 $recurso = $row['enlace_url'] ?: $row['archivo_ruta'];
                 $accion = $row['enlace_url']
                     ? 'onclick="window.open(\'' . htmlspecialchars($row['enlace_url']) . '\', \'_blank\')"'
-                    : 'href="' . htmlspecialchars($row['archivo_ruta']) . '" download';
+                    : 'href="/' . htmlspecialchars($row['archivo_ruta']) . '" download';
 
                 $html .= '
             <tr>
@@ -647,7 +647,7 @@ class Database
                         <a href="reuniones/editar.php?id='.$row['id_reunion'].'" class="btn btn-warning" title="Editar">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button class="btn btn-danger" onclick="eliminarReunion('.$row['id_reunion'].')" title="Eliminar">
+                        <button class="btn btn-danger" onclick="eliminarReunion('.$row['id_reunion'].', '. $id_curso .')" title="Eliminar">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

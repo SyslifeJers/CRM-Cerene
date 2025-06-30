@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($stmt->execute()) {
             $id_curso = $stmt->insert_id;
-            $enlace_registro = "http://".$_SERVER['HTTP_HOST']."/registro.php?clave=".$clave_curso;
+            $enlace_registro = "http://".$_SERVER['HTTP_HOST']."/Registro.php?clave=".$clave_curso;
             
             // Actualizar el link_inscripcion
             $update_stmt = $database->getConnection()->prepare("UPDATE cursos SET link_inscripcion = ? WHERE id_curso = ?");
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<?php include '../Modulos/head.php'; ?>
+<?php include '../Modulos/Head.php'; ?>
 
  
      <div class="col-lg-8">
@@ -132,4 +132,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>

@@ -130,4 +130,4 @@ $contenido = $database->getContenidoCursoParticipante($id_curso);
     </div>
 </div>
 
-<?php include '../../Modulos/footer.php'; ?>
+<?php include '../../Modulos/Footer.php'; ?>

@@ -1,5 +1,5 @@
 <?php
-require_once 'DB/conexion.php';
+require_once 'DB/Conexion.php';
 $database = new Database();
 
 $clave_curso = $_GET['clave'] ?? null;
@@ -20,7 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
     $apellido = htmlspecialchars($_POST['apellido']);
     $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
     $telefono = htmlspecialchars($_POST['telefono']);
-    
+    $titulo = $_POST['titulo'];
+    if ($titulo === 'Otro') {
+        $titulo = trim($_POST['otro_titulo'] ?? '');
+    }
+
     try {
         // Generar contraseña de 6 dígitos
 $pass_plain = sprintf("%06d", mt_rand(0, 999999));
@@ -28,9 +32,9 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
         $_SESSION['pass_temporal'] = $pass_plain;
         
         // Registrar participante
-       $sql_participante = "INSERT INTO participantes (nombre, apellido, email, telefono,pass) VALUES (?, ?, ?, ?, ?)";
+       $sql_participante = "INSERT INTO participantes (nombre, apellido, email, telefono,pass,titulo) VALUES (?, ?, ?, ?, ?,?)";
         $stmt_participante = $database->getConnection()->prepare($sql_participante);
-        $stmt_participante->bind_param("sssss", $nombre, $apellido, $email, $telefono, $pass_hash);
+        $stmt_participante->bind_param("ssssss", $nombre, $apellido, $email, $telefono, $pass_hash,$titulo);
 
         if ($stmt_participante->execute()) {
             $id_participante = $stmt_participante->insert_id;
@@ -115,14 +119,14 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                                     <p>Para completar tu inscripción, por favor realiza el pago de $<?= number_format($curso['costo'], 2) ?></p>
                                     <p>Tu contraseña temporal es <?= $_SESSION['pass_temporal'] ?></p>
                                     <p>Pasaremos al panel en 10 segundos</p>
-                                    <a class="btn btn-primary" href="bienvenida.php">Ir al panel</a>
+                                    <a class="btn btn-primary" href="participantePanel/index.php">Ir al panel</a>
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-success">
                                     <h5><i class="fas fa-envelope"></i> Confirmación</h5>
                                     <p>Pasaremos al panel en 10 segundos</p>
                                      <p>Tu contraseña temporal es <?= $_SESSION['pass_temporal'] ?></p>
-                                    <a class="btn btn-primary" href="bienvenida.php">Ir al panel</a>
+                                    <a class="btn btn-primary" href="participantePanel/index.php">Ir al panel</a>
                                 </div>
                             <?php endif; ?>
                             
@@ -145,6 +149,21 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                             
                             <form method="POST">
                                 <div class="row">
+                                                                    <div class="mb-3">
+                                <label for="titulo" class="form-label">Titulo*</label>
+                                <select class="form-select" id="titulo" name="titulo" required onchange="mostrarInputOtro(this)">
+                                    <option value="" selected disabled>Selecciona una opción</option>
+                                    <option value="Lic.">Lic.</option>
+                                    <option value="Mtra.">Mtra.</option>
+                                    <option value="Mtro.">Mtro.</option>
+                                    <option value="Dra.">Dra.</option>
+                                    <option value="Dr.">Dr.</option>
+                                    <option value="Psic.">Psic.</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+
+                                </div>
+
                                     <div class="col-md-6 mb-3">
                                         <label for="nombre" class="form-label">Nombre*</label>
                                         <input type="text" class="form-control" id="nombre" name="nombre" required>
@@ -165,7 +184,12 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                                     <label for="telefono" class="form-label">Teléfono*</label>
                                     <input type="tel" class="form-control" id="telefono" name="telefono" required>
                                 </div>
-                                
+
+                                <div class="mb-3 d-none" id="otroTituloDiv">
+                                    <label for="otro_titulo" class="form-label">Otro*</label>
+                                    <input type="text" class="form-control" id="otro_titulo" name="otro_titulo">
+                                </div>
+
                                 <?php if ($curso['requiere_pago']): ?>
                                     <div class="alert alert-info">
                                         <h5><i class="fas fa-info-circle"></i> Información de Pago</h5>
@@ -193,5 +217,19 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script>
+function mostrarInputOtro(select) {
+    const otroDiv = document.getElementById('otroTituloDiv');
+    const otroInput = document.getElementById('otro_titulo');
+    if (select.value === 'Otro') {
+        otroDiv.classList.remove('d-none');
+        
+    } else {
+        otroDiv.classList.add('d-none');
+        otroInput.removeAttribute('required');
+        otroInput.value = '';
+    }
+}
+</script>
 </body>
 </html>

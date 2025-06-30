@@ -6,7 +6,7 @@ header('Content-Type: application/json');
 
 // Verificar autenticación y método
 if (!isset($_SESSION['participante_id']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Acceso no autorizado']);
+    echo json_encode(['success' => false, 'message' => 'Acceso no autorizado, vuelve a inciar sessión']);
     exit();
 }
 

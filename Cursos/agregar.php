@@ -1,9 +1,9 @@
 <?php
-include '../Modulos/head.php';
+include '../Modulos/Head.php';
 
 $id_curso = $_GET['id_curso'] ?? null;
 if (!$id_curso) {
-    header("Location: ../cursos.php?error=curso_no_seleccionado");
+    header("Location: cursos.php?error=curso_no_seleccionado");
     exit();
 }
 ?>
@@ -56,4 +56,4 @@ if (!$id_curso) {
   </div>
 </div>
 
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>

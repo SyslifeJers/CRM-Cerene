@@ -304,7 +304,7 @@ header('Content-Type: text/html; charset=utf-8');
 
                       <span class="op-7">Hi,</span>
 
-                      <span class="fw-bold"><?php // echo $_SESSION['user']; ?></span>
+                      <span class="fw-bold"><?php echo $_SESSION['nombre']; ?></span>
 
                     </span>
 
@@ -313,26 +313,9 @@ header('Content-Type: text/html; charset=utf-8');
                   <ul class="dropdown-menu dropdown-user animated fadeIn">
 
                     <div class="dropdown-user-scroll scrollbar-outer">
-
                       <li>
 
-                        <div class="user-box">
-
-                          <div class="avatar-lg">
-
-
-
-                          </div>
-
-                          <div class="u-text">
-
-                            <h4><?php //echo $_SESSION['user']; ?></h4>
-
-                            
-
-                          </div>
-
-                        </div>
+                        <a class="dropdown-item" href="/participantePanel/mi_perfil.php">yo</a>
 
                       </li>
 

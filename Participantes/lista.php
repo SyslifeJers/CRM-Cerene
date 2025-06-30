@@ -1,5 +1,5 @@
 <?php
-include '../Modulos/head.php';
+include '../Modulos/Head.php';
 require_once '../DB/Conexion.php';
 $database = new Database();
 
@@ -251,4 +251,4 @@ document.getElementById('seleccionarTodos').addEventListener('change', function(
 });
 </script>
 
-<?php include '../Modulos/footer.php'; ?>
+<?php include '../Modulos/Footer.php'; ?>

@@ -3,14 +3,14 @@ session_start();
 require_once '../DB/Conexion.php';
 
 // Verificar autenticación y permisos
-if (!isset($_SESSION['participante_id'])) {
-    header("Location: ../login.php?error=no_autorizado");
+if (!isset($_SESSION['idAdmin'])) {
+    header("Location: ../logAdmin.php?error=no_autorizado");
     exit();
 }
 
 // Validar método y datos del formulario
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['id_curso'])) {
-    header("Location: cursos.php?error=datos_invalidos");
+    header("Location: curso.php?error=datos_invalidos");
     exit();
 }
 

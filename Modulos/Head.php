@@ -12,15 +12,10 @@ header('Content-Type: text/html; charset=utf-8');
 
 
 
-/*if ($_SESSION['token'] !== $db_token) {
-
-    // El token no coincide, redirigir al formulario de login
-
-    header("Location: https://app.clinicacerene.com/login.php");
-
+if (empty($_SESSION['idAdmin'])) {
+    header("Location: https://cursos.clinicacerene.com/logAdmin.php");
     exit();
-
-}*/
+}
 
  ?>
 
@@ -182,7 +177,7 @@ header('Content-Type: text/html; charset=utf-8');
 
              <li class="nav-item active">			  
 
-        <a class="nav-link" href="/index.php"> <i class="fas fa-home"></i>Inicio <span class="sr-only"></span></a>
+        <a class="nav-link" href="/Cursos/index.php"> <i class="fas fa-home"></i>Inicio <span class="sr-only"></span></a>
 
       </li>
       	   <li class="nav-item ">
@@ -199,37 +194,9 @@ header('Content-Type: text/html; charset=utf-8');
 
 	   <li class="nav-item ">
 
-        <a class="nav-link" href="/Usuarios/index.php"><i class="fas fa-user"></i>Psicologos <span class="sr-only"></span></a>
+        <a class="nav-link" href="/Usuarios/index.php"><i class="fas fa-user"></i>Usuarios <span class="sr-only"></span></a>
 
       </li>
-
-
-
-
-
-      <?php $rol = isset($_SESSION['rol']) ? $_SESSION['rol'] : 0;
-
-      
-
-      if ($rol == 4) {?>
-
-	  	   <li class="nav-item ">
-
-        <a class="nav-link" href="/Reportes/index.php"><i class="fas fa-chart-pie"></i>Reportes <span class="sr-only"></span></a>
-
-      </li>
-
-      <li class="nav-item ">
-
-        <a class="nav-link" href="/Configuracion/index.php"><i class="fas fa-hammer"></i>Configuración <span class="sr-only"></span></a>
-
-      </li>  
-
-      <?php } ?>
-
-
-
-	 
 
             </ul>
 
@@ -349,27 +316,6 @@ header('Content-Type: text/html; charset=utf-8');
 
                     <div class="dropdown-user-scroll scrollbar-outer">
 
-                      <li>
-
-                        <div class="user-box">
-
-                          <div class="avatar-lg">
-
-
-
-                          </div>
-
-                          <div class="u-text">
-
-                            <h4><?php //echo $_SESSION['user']; ?></h4>
-
-                            
-
-                          </div>
-
-                        </div>
-
-                      </li>
 
                       <li>
 

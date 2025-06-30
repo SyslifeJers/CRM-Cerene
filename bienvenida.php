@@ -1,11 +1,11 @@
 <?php
 session_start();
 if (!isset($_SESSION['participante_id']) ) {
-    header("Location: registro.php");
+    header("Location: Registro.php");
     exit();
 }
 
-include 'Modulos/head.php';
+include 'Modulos/HeadP.php';
 ?>
 
 <div class="container mt-5">
@@ -38,5 +38,5 @@ include 'Modulos/head.php';
 <?php 
 // Limpiar la contraseña temporal de la sesión
 unset($_SESSION['pass_temporal']);
-include 'Modulos/footer.php'; 
+include 'Modulos/FooterP.php'; 
 ?>

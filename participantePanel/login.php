@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </form>
 
                         <div class="mt-3">
-                            <p>¿No tienes cuenta? <a href="registro.php">Regístrate aquí</a></p>
+                            <p>¿No tienes cuenta? <a href="Registro.php">Regístrate aquí</a></p>
                         </div>
                     </div>
                 </div>
