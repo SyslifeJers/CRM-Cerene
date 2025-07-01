@@ -12,10 +12,11 @@ if (!isset($_SESSION['participante_id'])) {
 $id = $_POST['id'] ?? null;
 $nombre = trim($_POST['nombre'] ?? '');
 $apellido = trim($_POST['apellido'] ?? '');
+$cedula = trim($_POST['cedula'] ?? '');
 $titulo = trim($_POST['titulo'] ?? '');
 $titulo_otro = trim($_POST['titulo_otro'] ?? '');
 
-if (!$id || !$nombre || !$apellido || !$titulo) {
+if (!$id || !$nombre || !$apellido || !$cedula || !$titulo) {
     header("Location: mi_perfil.php?error=campos_obligatorios");
     exit();
 }
@@ -29,8 +30,8 @@ try {
     $database = new Database();
     $conn = $database->getConnection();
 
-    $stmt = $conn->prepare("UPDATE participantes SET nombre = ?, apellido = ?, titulo = ? WHERE id_participante = ?");
-    $stmt->bind_param("sssi", $nombre, $apellido, $titulo, $id);
+    $stmt = $conn->prepare("UPDATE participantes SET nombre = ?, apellido = ?, cedula = ?, titulo = ? WHERE id_participante = ?");
+    $stmt->bind_param("ssssi", $nombre, $apellido, $cedula, $titulo, $id);
 
     if ($stmt->execute()) {
         header("Location: mi_perfil.php?success=perfil_actualizado");
