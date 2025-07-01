@@ -20,6 +20,14 @@ $stmt = $database->getConnection()->prepare($query);
 $stmt->bind_param("i", $participante_id);
 $stmt->execute();
 $result = $stmt->get_result();
+
+// Obtener cédula del participante
+$stmtCedula = $database->getConnection()->prepare("SELECT cedula FROM participantes WHERE id_participante = ?");
+$stmtCedula->bind_param("i", $participante_id);
+$stmtCedula->execute();
+$stmtCedula->bind_result($cedula);
+$stmtCedula->fetch();
+$stmtCedula->close();
 ?>
 
 <div class="row">
@@ -86,6 +94,10 @@ $result = $stmt->get_result();
               <div class="card-body">
                 <p><strong>Nombre:</strong> <?= htmlspecialchars($_SESSION['nombre']) ?></p>
                 <p><strong>Email:</strong> <?= htmlspecialchars($_SESSION['email']) ?></p>
+                                <p class="d-flex align-items-center"><strong class="me-2">Cédula:</strong>
+                  <input type="password" id="cedulaInput" class="form-control-plaintext me-2" value="<?= htmlspecialchars($cedula) ?>" readonly style="width:auto;">
+                  <button type="button" id="toggleCedula" class="btn btn-link p-0"><i class="fas fa-eye"></i></button>
+                </p>
                 <a href="mi_perfil.php" class="btn btn-primary">Mi perfil</a>
                 <hR>
                 <a href="logout.php" class="btn btn-danger">Cerrar Sesión</a>
@@ -316,6 +328,21 @@ document.getElementById('formAgregarCurso').addEventListener('submit', function(
         boton.disabled = false;
         boton.innerHTML = '<i class="fas fa-plus"></i> Agregar Curso';
     });
+});
+
+// Mostrar/ocultar cédula
+document.getElementById('toggleCedula').addEventListener('click', function() {
+    const input = document.getElementById('cedulaInput');
+    const icon = this.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
 });
 </script>
 <?php include '../Modulos/Footer.php'; ?>

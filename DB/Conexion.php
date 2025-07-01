@@ -70,7 +70,8 @@ class Database
                 c.activo,
                 c.clave_curso,
                 c.link_inscripcion,
-                COUNT(i.id_inscripcion) as inscritos
+                COUNT(i.id_inscripcion) as inscritos,
+                c.requiere_pago
               FROM cursos c
               LEFT JOIN inscripciones i ON c.id_curso = i.id_curso
               WHERE " . ($filtro_activos ? "c.activo = 1" : "1") . "
@@ -111,6 +112,12 @@ class Database
                     $estado = '<span class="badge bg-danger">Inactivo</span>';
                 }
 
+                $btnPago = '';
+if ($row['requiere_pago'] == 1) {
+    $btnPago = '<a href="AltaPagos.php?id_curso=' . $row['id_curso'] . '" class="btn btn-success" title="Subir métodos de pago">
+                    <i class="fas fa-money-bill-wave"></i>
+                </a>';
+}
                 $html .= '
             <tr>
                 <td>' . $row["id_curso"] . '</td>
@@ -154,6 +161,7 @@ class Database
                         <a href="curso.php?id=' . $row['id_curso'] . '" class="btn btn-info" title="Ver curso">
                             <i class="fas fa-eye"></i>
                         </a>
+                        ' . $btnPago . '
                     </div>
                 </td>
             </tr>';

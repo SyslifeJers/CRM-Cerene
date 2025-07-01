@@ -187,8 +187,8 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="cedula" class="form-label">Cédula*</label>
-                                    <input type="text" class="form-control" id="cedula" name="cedula" required>
+                                    <label for="cedula" class="form-label">Cédula</label>
+                                    <input type="text" class="form-control" id="cedula" name="cedula" >
                                 </div>
 
                                 <div class="mb-3 d-none" id="otroTituloDiv">
