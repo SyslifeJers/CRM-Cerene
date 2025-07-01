@@ -33,10 +33,7 @@ if ($result_curso->num_rows > 0) {
     <button type="submit" class="btn btn-primary mb-3">
         <i class="fas fa-envelope"></i> Enviar correo a todos los inscritos
     </button>
-    </form>
-    <a href="eliminar.php" class="btn btn-danger mb-3 ms-2">
-        <i class="fas fa-user-slash"></i> Eliminar participantes
-    </a>
+</form>
   <div class="col-md-12">
     <div class="card">
       <div class="card-header">
