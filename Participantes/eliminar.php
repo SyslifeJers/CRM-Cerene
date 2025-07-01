@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../DB/Conexion.php';
 $database = new Database();
 $conn = $database->getConnection();

@@ -451,6 +451,9 @@ class Database
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item rechazar-inscripcion" href="#" data-id="' . $row['id_inscripcion'] . '">Rechazar</a></li>
                             </ul>
+                            <a href="eliminar.php?id_participante=' . $row['id_participante'] . '" class="btn btn-danger mb-3 ms-2">
+                                <i class="fas fa-user-slash"></i> Eliminar participantes
+                            </a>
                         </div>
                     </div>
                 </td>
