@@ -18,6 +18,7 @@ if ($clave_curso) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
     $nombre = htmlspecialchars($_POST['nombre']);
     $apellido = htmlspecialchars($_POST['apellido']);
+    $cedula = htmlspecialchars($_POST['cedula']);
     $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
     $telefono = htmlspecialchars($_POST['telefono']);
     $titulo = $_POST['titulo'];
@@ -32,9 +33,9 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
         $_SESSION['pass_temporal'] = $pass_plain;
         
         // Registrar participante
-       $sql_participante = "INSERT INTO participantes (nombre, apellido, email, telefono,pass,titulo) VALUES (?, ?, ?, ?, ?,?)";
+       $sql_participante = "INSERT INTO participantes (nombre, apellido, cedula, email, telefono, pass, titulo) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt_participante = $database->getConnection()->prepare($sql_participante);
-        $stmt_participante->bind_param("ssssss", $nombre, $apellido, $email, $telefono, $pass_hash,$titulo);
+        $stmt_participante->bind_param("sssssss", $nombre, $apellido, $cedula, $email, $telefono, $pass_hash, $titulo);
 
         if ($stmt_participante->execute()) {
             $id_participante = $stmt_participante->insert_id;
@@ -183,6 +184,11 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                                 <div class="mb-3">
                                     <label for="telefono" class="form-label">Teléfono*</label>
                                     <input type="tel" class="form-control" id="telefono" name="telefono" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="cedula" class="form-label">Cédula*</label>
+                                    <input type="text" class="form-control" id="cedula" name="cedula" required>
                                 </div>
 
                                 <div class="mb-3 d-none" id="otroTituloDiv">

@@ -14,10 +14,10 @@ $conn = $database->getConnection();
 $id_participante = $_SESSION['participante_id'];
 
 // Obtener datos actuales
-$stmt = $conn->prepare("SELECT nombre, apellido, titulo FROM participantes WHERE id_participante = ?");
+$stmt = $conn->prepare("SELECT nombre, apellido, cedula, titulo FROM participantes WHERE id_participante = ?");
 $stmt->bind_param("i", $id_participante);
 $stmt->execute();
-$stmt->bind_result($nombre, $apellido, $titulo);
+$stmt->bind_result($nombre, $apellido, $cedula, $titulo);
 $stmt->fetch();
 $stmt->close();
 ?>
@@ -35,6 +35,10 @@ $stmt->close();
         <div class="mb-3">
             <label class="form-label">Apellido</label>
             <input type="text" name="apellido" class="form-control" value="<?= htmlspecialchars($apellido) ?>" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Cédula</label>
+            <input type="text" name="cedula" class="form-control" value="<?= htmlspecialchars($cedula) ?>" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Título / Grado</label>
