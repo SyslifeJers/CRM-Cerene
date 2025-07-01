@@ -438,7 +438,7 @@ class Database
                         <button class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                        
+
                         <div class="btn-group">
                             <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" title="Cambiar estado">
                                 <i class="fas fa-exchange-alt"></i>
@@ -452,6 +452,9 @@ class Database
                                 <li><a class="dropdown-item rechazar-inscripcion" href="#" data-id="' . $row['id_inscripcion'] . '">Rechazar</a></li>
                             </ul>
                         </div>
+                        <a href="eliminar.php?id_participante=' . $row['id_participante'] . '" class="btn btn-danger" title="Eliminar participante">
+                            <i class="fas fa-user-slash"></i>
+                        </a>
                     </div>
                 </td>
             </tr>';
