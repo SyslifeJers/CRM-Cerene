@@ -1,6 +1,42 @@
 <?php
+session_start();
 require_once 'DB/Conexion.php';
+require_once 'config/env_loader.php';
 $database = new Database();
+
+function enviarCorreoPass($destino, $nombreCompleto, $password) {
+    cargarEnv();
+    $apiKey = getenv('MAILGUN_API_KEY');
+    $domain = getenv('MAILGUN_DOMAIN');
+    $from   = getenv('MAILGUN_FROM');
+
+    if (!$apiKey || !$domain || !$from) {
+        return;
+    }
+
+    $asunto = 'Bienvenido a Clínica Cerene';
+    $html = "<p>Hola {$nombreCompleto},</p>".
+            "<p>Gracias por tu suscripción. A continuación encontrarás tu contraseña temporal:</p>".
+            "<p style='font-size:18px'><strong>{$password}</strong></p>".
+            "<p>Puedes acceder a la plataforma desde <a href='https://cursos.clinicacerene.com/index.php'>este enlace</a>.</p>".
+            "<p>Te recomendamos cambiar la contraseña una vez inicies sesión.</p>";
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => "https://api.mailgun.net/v3/{$domain}/messages",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_USERPWD => $apiKey,
+        CURLOPT_POSTFIELDS => [
+            'from'    => $from,
+            'to'      => $destino,
+            'subject' => $asunto,
+            'html'    => $html
+        ]
+    ]);
+    curl_exec($ch);
+    curl_close($ch);
+}
 
 $clave_curso = $_GET['clave'] ?? null;
 $curso = null;
@@ -26,7 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
         $titulo = trim($_POST['otro_titulo'] ?? '');
     }
 
-    try {
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Error: Formato de correo electrónico inválido";
+    } else {
+        try {
         // Generar contraseña de 6 dígitos
 $pass_plain = sprintf("%06d", mt_rand(0, 999999));
 $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
@@ -62,6 +101,7 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
             
             $stmt_inscripcion->close();
             $registro_exitoso = true;
+            enviarCorreoPass($email, $nombre . ' ' . $apellido, $pass_plain);
         } else {
             throw new Exception("Error al registrar participante: " . $stmt_participante->error);
         }
@@ -70,6 +110,7 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
         // Aquí podrías agregar lógica para enviar correo de confirmación
     } catch (Exception $e) {
         $error = "Error al registrar: " . $e->getMessage();
+    }
     }
 }
 ?>
