@@ -438,7 +438,7 @@ class Database
                         <button class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                        
+
                         <div class="btn-group">
                             <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" title="Cambiar estado">
                                 <i class="fas fa-exchange-alt"></i>
