@@ -68,9 +68,9 @@ try {
         if (empty($nuevo_estado)) {
             throw new Exception('El estado es requerido');
         }
-        $stmt = $database->getConnection()->prepare("UPDATE inscripciones 
-            SET estado = ?, 
-                fecha_cambio_estado = CURRENT_TIMESTAMP 
+        $stmt = $database->getConnection()->prepare("UPDATE inscripciones
+            SET estado = ?,
+                fecha_cambio_estado = CURRENT_TIMESTAMP
             WHERE id_inscripcion = ?");
         $stmt->bind_param("si", $nuevo_estado, $id_inscripcion);
         $stmt->execute();
@@ -78,6 +78,23 @@ try {
         echo json_encode([
             'success' => true,
             'message' => 'Estado de inscripción actualizado correctamente'
+        ]);
+    } elseif ($accion === 'asignar_opcion_pago') {
+        $id_opcion = $data['id_opcion'] ?? 0;
+        if (!$id_opcion) {
+            throw new Exception('Opción de pago no válida');
+        }
+        $stmt = $database->getConnection()->prepare("UPDATE inscripciones
+            SET id_opcion_pago = ?,
+                estado = 'pagos_programados',
+                fecha_cambio_estado = CURRENT_TIMESTAMP
+            WHERE id_inscripcion = ?");
+        $stmt->bind_param("ii", $id_opcion, $id_inscripcion);
+        $stmt->execute();
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Opción de pago asignada'
         ]);
     } else {
         throw new Exception('Acción no válida');

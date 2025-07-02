@@ -14,14 +14,18 @@ $database = new Database();
 $conn = $database->getConnection();
 
 try {
-    // 1. Validar que la inscripción pertenece al participante
-    $checkStmt = $conn->prepare("SELECT id_inscripcion FROM inscripciones WHERE id_inscripcion = ? AND id_participante = ?");
+    // 1. Validar que la inscripción pertenece al participante y obtener opción de pago
+    $checkStmt = $conn->prepare("SELECT id_inscripcion, id_opcion_pago FROM inscripciones WHERE id_inscripcion = ? AND id_participante = ?");
     $checkStmt->bind_param("ii", $_POST['id_inscripcion'], $_SESSION['participante_id']);
     $checkStmt->execute();
-    
-    if ($checkStmt->get_result()->num_rows === 0) {
+    $resultCheck = $checkStmt->get_result();
+
+    if ($resultCheck->num_rows === 0) {
         throw new Exception('La inscripción no existe o no pertenece a este usuario');
     }
+
+    $inscripcionData = $resultCheck->fetch_assoc();
+    $id_opcion_pago = $inscripcionData['id_opcion_pago'];
 
     // 2. Validar archivo
     $target_dir = "../comprobantes/";
@@ -44,28 +48,60 @@ try {
         throw new Exception('Error al guardar el archivo en el servidor');
     }
 
-    // 4. Actualizar la base de datos
-    $updateStmt = $conn->prepare("UPDATE inscripciones SET 
-        estado = 'comprobante_enviado',
-        metodo_pago = ?,
-        referencia_pago = ?,
-        monto_pagado = ?,
-        comprobante_path = ?,
-        fecha_cambio_estado = CURRENT_TIMESTAMP
-        WHERE id_inscripcion = ?");
-    
-    // Asegurar tipos correctos
+    // 4. Guardar datos según la opción de pago
     $metodo_pago = $_POST['metodo_pago'];
-    $referencia = $_POST['referencia_pago'];
-    $monto = (float)$_POST['monto_pagado'];
+    $referencia  = $_POST['referencia_pago'];
+    $monto       = (float)$_POST['monto_pagado'];
     $id_inscripcion = (int)$_POST['id_inscripcion'];
-    
-    $updateStmt->bind_param("ssdsi", $metodo_pago, $referencia, $monto, $file_name, $id_inscripcion);
-    
-    if (!$updateStmt->execute()) {
-        // Borrar archivo si falla la BD
-        unlink($target_file);
-        throw new Exception('Error en la base de datos: ' . $updateStmt->error);
+
+    if ($id_opcion_pago) {
+        // Múltiples comprobantes
+        $countStmt = $conn->prepare("SELECT COUNT(*) AS pagos FROM comprobantes_inscripcion WHERE id_inscripcion = ?");
+        $countStmt->bind_param("i", $id_inscripcion);
+        $countStmt->execute();
+        $countRes = $countStmt->get_result()->fetch_assoc();
+        $numero_pago = $countRes['pagos'] + 1;
+        $countStmt->close();
+
+        $optStmt = $conn->prepare("SELECT numero_pagos FROM opciones_pago WHERE id_opcion = ?");
+        $optStmt->bind_param("i", $id_opcion_pago);
+        $optStmt->execute();
+        $max_pagos = $optStmt->get_result()->fetch_assoc()['numero_pagos'];
+        $optStmt->close();
+
+        if ($numero_pago > $max_pagos) {
+            unlink($target_file);
+            throw new Exception('Ya se enviaron todos los comprobantes requeridos');
+        }
+
+        $insertStmt = $conn->prepare("INSERT INTO comprobantes_inscripcion (id_inscripcion, numero_pago, metodo_pago, referencia_pago, monto_pagado, comprobante_path) VALUES (?, ?, ?, ?, ?, ?)");
+        $insertStmt->bind_param("iissds", $id_inscripcion, $numero_pago, $metodo_pago, $referencia, $monto, $file_name);
+
+        if (!$insertStmt->execute()) {
+            unlink($target_file);
+            throw new Exception('Error en la base de datos: ' . $insertStmt->error);
+        }
+
+        $updateStmt = $conn->prepare("UPDATE inscripciones SET estado = 'comprobante_enviado', fecha_cambio_estado = CURRENT_TIMESTAMP WHERE id_inscripcion = ?");
+        $updateStmt->bind_param("i", $id_inscripcion);
+        $updateStmt->execute();
+    } else {
+        // Comprobante único como antes
+        $updateStmt = $conn->prepare("UPDATE inscripciones SET
+            estado = 'comprobante_enviado',
+            metodo_pago = ?,
+            referencia_pago = ?,
+            monto_pagado = ?,
+            comprobante_path = ?,
+            fecha_cambio_estado = CURRENT_TIMESTAMP
+            WHERE id_inscripcion = ?");
+
+        $updateStmt->bind_param("ssdsi", $metodo_pago, $referencia, $monto, $file_name, $id_inscripcion);
+
+        if (!$updateStmt->execute()) {
+            unlink($target_file);
+            throw new Exception('Error en la base de datos: ' . $updateStmt->error);
+        }
     }
 
     // Éxito

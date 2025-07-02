@@ -370,8 +370,9 @@ if ($row['requiere_pago'] == 1) {
         // Consulta mejorada para incluir comprobante_path
         $query = "SELECT 
                 i.id_inscripcion, 
-                i.id_curso, 
+                i.id_curso,
                 i.id_participante,
+                i.id_opcion_pago,
                 i.estado,
                 i.metodo_pago,
                 i.monto_pagado,
@@ -407,6 +408,7 @@ if ($row['requiere_pago'] == 1) {
                     'pendiente_pago' => 'bg-warning',
                     'comprobante_enviado' => 'bg-info',
                     'revision_pago' => 'bg-primary',
+                    'pagos_programados' => 'bg-info',
                     'pago_validado' => 'bg-success',
                     'rechazado' => 'bg-danger'
                 ];
@@ -445,8 +447,15 @@ if ($row['requiere_pago'] == 1) {
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
                             <i class="fas fa-edit"></i>
-                        </button>
+                        </button>';
 
+                if (!$row['id_opcion_pago']) {
+                    $html .= '<button class="btn btn-success asignar-opcion" data-id="' . $row['id_inscripcion'] . '">
+                            <i class="fas fa-calendar-plus"></i>
+                        </button>';
+                }
+
+                $html .= '
                         <div class="btn-group">
                             <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown" title="Cambiar estado">
                                 <i class="fas fa-exchange-alt"></i>

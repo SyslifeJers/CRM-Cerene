@@ -25,6 +25,17 @@ if ($result_curso->num_rows > 0) {
     $row_curso = $result_curso->fetch_assoc();
     $nombre_curso = htmlspecialchars($row_curso['nombre_curso']);
 }
+
+// Obtener opciones de pago disponibles para este curso
+$opciones_pago = [];
+$stmtOpc = $database->getConnection()->prepare("SELECT op.id_opcion, op.numero_pagos, f.tipo, f.dias
+                        FROM opciones_pago op
+                        JOIN frecuencia_pago f ON op.id_frecuencia = f.id_frecuencia
+                        WHERE op.id_curso = ? AND op.activo = 1");
+$stmtOpc->bind_param("i", $id_curso);
+$stmtOpc->execute();
+$opciones_pago = $stmtOpc->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmtOpc->close();
 ?>
 
 <div class="row">
@@ -120,8 +131,59 @@ if ($result_curso->num_rows > 0) {
         </div>
     </div>
 
+    <!-- Modal Asignar Opción de Pago -->
+    <div class="modal fade" id="modalOpcionPago" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Asignar opción de pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formOpcionPago">
+                        <input type="hidden" name="id_inscripcion" id="idInscripcionPago">
+                        <div class="mb-3">
+                            <label class="form-label">Opción</label>
+                            <select name="id_opcion" class="form-select" required>
+                                <?php foreach ($opciones_pago as $op): ?>
+                                    <option value="<?= $op['id_opcion'] ?>">
+                                        <?= $op['numero_pagos'] ?> pagos - <?= ucfirst($op['tipo']) ?> (cada <?= $op['dias'] ?> días)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Asignar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     $(document).ready(function() {
+        $('.asignar-opcion').click(function() {
+            $('#idInscripcionPago').val($(this).data('id'));
+            $('#modalOpcionPago').modal('show');
+        });
+
+        $('#formOpcionPago').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: 'gestion_inscripcion.php',
+                type: 'POST',
+                data: $(this).serialize() + '&accion=asignar_opcion_pago',
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        Swal.fire('Éxito', res.message, 'success');
+                        $('#modalOpcionPago').modal('hide');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                }
+            });
+        });
         // Ver comprobante
         $(".ver-comprobante").click(function() {
             const idInscripcion = $(this).data("id");
