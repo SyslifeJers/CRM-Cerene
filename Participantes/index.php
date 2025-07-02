@@ -28,11 +28,21 @@ if ($result_curso->num_rows > 0) {
 ?>
 
 <div class="row">
-    <form method="POST" action="enviar_correo_masivo.php" target="_blank">
+    <form method="POST" action="enviar_correo_masivo.php" target="_blank" class="mb-3 me-3">
     <input type="hidden" name="id_curso" value="<?php echo $id_curso; ?>">
-    <button type="submit" class="btn btn-primary mb-3">
+    <button type="submit" class="btn btn-primary">
         <i class="fas fa-envelope"></i> Enviar correo a todos los inscritos
     </button>
+    </form>
+    <form method="POST" action="exportar_csv.php" class="mb-3">
+        <input type="hidden" name="id_curso" value="<?php echo $id_curso; ?>">
+        <div class="input-group">
+            <input type="text" name="prefijo" id="prefijo" class="form-control" placeholder="Prefijo">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-file-csv"></i> Pasar a CSV
+            </button>
+        </div>
+        <label for="prefijo" class="form-label mt-1">Ejemplo: 1-002-@id</label>
     </form>
   <div class="col-md-12">
     <div class="card">
