@@ -102,11 +102,17 @@ $data = $result->fetch_assoc();
                                         
                                         <?php if ($data['estado'] == 'registrado' && $data['requiere_pago']): ?>
                                             <hr>
-                                            <button class="btn btn-primary open-modal" 
-                                                    data-inscripcion="<?= $data['id_inscripcion'] ?>" 
-                                                    data-curso="<?= htmlspecialchars($data['nombre_curso']) ?>">
-                                                <i class="fas fa-upload"></i> Subir comprobante
-                                            </button>
+                                            <?php if ($data['id_opcion_pago']): ?>
+                                                <a href="../pagos.php?id=<?= $data['id_inscripcion'] ?>" class="btn btn-primary">
+                                                    <i class="fas fa-receipt"></i> Ver pagos
+                                                </a>
+                                            <?php else: ?>
+                                                <button class="btn btn-primary open-modal"
+                                                        data-inscripcion="<?= $data['id_inscripcion'] ?>"
+                                                        data-curso="<?= htmlspecialchars($data['nombre_curso']) ?>">
+                                                    <i class="fas fa-upload"></i> Subir comprobante
+                                                </button>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                     

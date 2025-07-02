@@ -12,7 +12,7 @@ require_once '../DB/Conexion.php';
 $database = new Database();
 
 $participante_id = $_SESSION['participante_id'];
-$query = "SELECT i.id_inscripcion, c.clave_curso, c.nombre_curso, i.estado, i.fecha_inscripcion 
+$query = "SELECT i.id_inscripcion, i.id_opcion_pago, c.clave_curso, c.nombre_curso, i.estado, i.fecha_inscripcion
           FROM inscripciones i
           JOIN cursos c ON i.id_curso = c.id_curso
           WHERE i.id_participante = ?";
@@ -64,13 +64,19 @@ $stmtCedula->close();
                       </span>
                     </td>
                     <td>
-                      <?php if ($row['estado'] == 'registrado'): ?>
-                        <button class="btn btn-sm btn-primary open-modal" 
-                                data-inscripcion="<?= $row['id_inscripcion'] ?>" 
+                    <?php if ($row['estado'] == 'registrado'): ?>
+                      <?php if ($row['id_opcion_pago']): ?>
+                          <a href="pagos.php?id=<?= $row['id_inscripcion'] ?>" class="btn btn-sm btn-primary">
+                              <i class="fas fa-receipt"></i> Ver pagos
+                          </a>
+                      <?php else: ?>
+                          <button class="btn btn-sm btn-primary open-modal"
+                                data-inscripcion="<?= $row['id_inscripcion'] ?>"
                                 data-curso="<?= htmlspecialchars($row['nombre_curso']) ?>">
-                            <i class="fas fa-upload"></i> Subir comprobante
-                        </button>
+                              <i class="fas fa-upload"></i> Subir comprobante
+                          </button>
                       <?php endif; ?>
+                    <?php endif; ?>
                        <?php if ($row['estado'] == 'pago_validado'): ?>
                         <a href="curso/contenido.php?clave=<?= $row['clave_curso'] ?>" class="btn btn-sm btn-primary">
 
