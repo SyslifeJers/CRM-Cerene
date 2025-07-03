@@ -158,6 +158,9 @@ if ($row['requiere_pago'] == 1) {
                         <button class="btn btn-danger" onclick="cambiarEstadoCurso(' . $row['id_curso'] . ',' . ($row['activo'] ? 0 : 1) . ')" title="' . ($row['activo'] ? 'Desactivar' : 'Activar') . '">
                             <i class="fas fa-power-off"></i>
                         </button>
+                        <a href="detalle.php?id=' . $row['id_curso'] . '" class="btn btn-secondary" title="Detalle">
+                            <i class="fas fa-info-circle"></i>
+                        </a>
                         <a href="curso.php?id=' . $row['id_curso'] . '" class="btn btn-info" title="Ver curso">
                             <i class="fas fa-eye"></i>
                         </a>
@@ -692,6 +695,7 @@ public function getCursoById($id_curso) {
                 fecha_inicio, 
                 fecha_fin, 
                 costo,
+                cupo_maximo,
                 activo,
                 link_inscripcion,
                 clave_curso,
@@ -710,6 +714,23 @@ public function getCursoById($id_curso) {
         error_log("Error al obtener curso: " . $this->conn->error);
         return false;
     }
+}
+
+public function getFormasPago() {
+    $query = "SELECT id_forma_pago, nombre, IFNULL(adicional,0) AS adicional FROM formas_pago ORDER BY nombre";
+    $result = $this->conn->query($query);
+    if ($result) {
+        return $result->fetch_all(MYSQLI_ASSOC);
+    }
+    return [];
+}
+
+public function getOpcionesPagoCurso($id_curso) {
+    $stmt = $this->conn->prepare("SELECT id_opcion, numero_pagos FROM opciones_pago WHERE id_curso = ? AND activo = 1");
+    $stmt->bind_param("i", $id_curso);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 }
 public function getContenidoCursoParticipante($id_curso) {
     $query = "SELECT 
