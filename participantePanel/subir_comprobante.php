@@ -82,7 +82,7 @@ try {
             throw new Exception('Error en la base de datos: ' . $insertStmt->error);
         }
 
-        $updateStmt = $conn->prepare("UPDATE inscripciones SET estado = 'comprobante_enviado', fecha_cambio_estado = CURRENT_TIMESTAMP WHERE id_inscripcion = ?");
+        $updateStmt = $conn->prepare("UPDATE inscripciones SET estado = 'Revision de pago', fecha_cambio_estado = CURRENT_TIMESTAMP WHERE id_inscripcion = ?");
         $updateStmt->bind_param("i", $id_inscripcion);
         $updateStmt->execute();
     } else {

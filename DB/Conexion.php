@@ -407,7 +407,8 @@ class Database
                     'revision_pago' => 'bg-primary',
                     'pagos programados' => 'bg-info',
                     'pago_validado' => 'bg-success',
-                    'rechazado' => 'bg-danger'
+                    'rechazado' => 'bg-danger',
+                    'Revision de pago' => 'bg-primary'
                 ];
 
                 // Formatear fechas

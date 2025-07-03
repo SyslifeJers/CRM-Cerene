@@ -38,9 +38,21 @@ function enviarCorreoPass($destino, $nombreCompleto, $password) {
     curl_close($ch);
 }
 
-$clave_curso = $_GET['clave'] ?? null;
+// La clave puede venir con la opción de pago: CLAVE-IdOpcion
+$clave_param = $_GET['clave'] ?? null;
+$opcion_pago_id = null;
+$clave_curso = null;
+$opcion_pago_info = null;
 $curso = null;
 $registro_exitoso = false;
+
+if ($clave_param) {
+    $partes = explode('-', $clave_param);
+    $clave_curso = $partes[0] ?? null;
+    if (isset($partes[1]) && ctype_digit($partes[1])) {
+        $opcion_pago_id = (int)$partes[1];
+    }
+}
 
 // Verificar que la clave sea válida
 if ($clave_curso) {
@@ -49,6 +61,21 @@ if ($clave_curso) {
     $stmt->execute();
     $result = $stmt->get_result();
     $curso = $result->fetch_assoc();
+    $stmt->close();
+    // Si existe opción de pago válida, obtener información
+    if ($curso && $opcion_pago_id) {
+        $opStmt = $database->getConnection()->prepare(
+            "SELECT op.numero_pagos, f.tipo AS frecuencia, op.costo_adicional, op.nota FROM opciones_pago op JOIN frecuencia_pago f ON f.id_frecuencia = op.id_frecuencia WHERE op.id_opcion = ? AND op.activo = 1"
+        );
+        $opStmt->bind_param("i", $opcion_pago_id);
+        $opStmt->execute();
+        $resOp = $opStmt->get_result();
+        $opcion_pago_info = $resOp->fetch_assoc();
+        $opStmt->close();
+        if (!$opcion_pago_info) {
+            $opcion_pago_id = null; // Si no se encontró opción válida
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
@@ -84,13 +111,13 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                 throw new Exception("Error: No se generó ID de participante");
             }
             $estado = $curso['requiere_pago'] ? 'registrado' : 'pago_validado';
-            // Insertar inscripción
-            $sql_inscripcion = "INSERT INTO inscripciones 
-                            (id_curso, id_participante, estado, fecha_inscripcion) 
-                            VALUES (?, ?, ?, NOW())";
-            
+            // Insertar inscripción con posible opción de pago
+            $sql_inscripcion = "INSERT INTO inscripciones
+                            (id_curso, id_participante, estado, fecha_inscripcion, IdOpcionPago)
+                            VALUES (?, ?, ?, NOW(), ?)";
+
             $stmt_inscripcion = $database->getConnection()->prepare($sql_inscripcion);
-            $stmt_inscripcion->bind_param("iis", $curso['id_curso'], $id_participante, $estado);
+            $stmt_inscripcion->bind_param("iisi", $curso['id_curso'], $id_participante, $estado, $opcion_pago_id);
 
             if (!$stmt_inscripcion->execute()) {
                 throw new Exception("Error al inscribir: " . $stmt_inscripcion->error);
@@ -238,11 +265,25 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                                 </div>
 
                                 <?php if ($curso['requiere_pago']): ?>
-                                    <div class="alert alert-info">
-                                        <h5><i class="fas fa-info-circle"></i> Información de Pago</h5>
-                                        <p>Costo del curso: <strong>$<?= number_format($curso['costo'], 2) ?></strong></p>
-                                        <p>Después de registrarte, serás redirigido al proceso de pago.</p>
-                                    </div>
+                                    <?php if ($opcion_pago_info): ?>
+                                        <div class="alert alert-info">
+                                            <h5><i class="fas fa-info-circle"></i> Plan de Pago Seleccionado</h5>
+                                            <p>Costo del curso: <strong>$<?= number_format(($curso['costo'] + $opcion_pago_info['costo_adicional']), 2) ?></strong></p>
+                                            <p>Número de pagos: <strong><?= $opcion_pago_info['numero_pagos'] ?></strong></p>
+                                            <p>Frecuencia: <strong><?= htmlspecialchars($opcion_pago_info['frecuencia']) ?></strong></p>
+                                            <?php $total = $curso['costo'] + $opcion_pago_info['costo_adicional']; $aprox = $total / $opcion_pago_info['numero_pagos']; ?>
+                                            <p>Pago aproximado: <strong>$<?= number_format($aprox, 2) ?></strong></p>
+                                            <?php if (!empty($opcion_pago_info['nota'])): ?>
+                                                <p>Nota: <strong><?= htmlspecialchars($opcion_pago_info['nota']) ?></strong></p>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-info">
+                                            <h5><i class="fas fa-info-circle"></i> Información de Pago</h5>
+                                            <p>Costo del curso: <strong>$<?= number_format($curso['costo'], 2) ?></strong></p>
+                                            <p>Después de registrarte, serás redirigido al proceso de pago.</p>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                                 
                                 <div class="d-grid gap-2">

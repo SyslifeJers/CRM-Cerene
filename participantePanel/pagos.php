@@ -18,7 +18,7 @@ $database = new Database();
 $conn = $database->getConnection();
 
 // Verificar que la inscripción pertenece al participante y obtener datos del curso y opción de pago
-$stmt = $conn->prepare("SELECT i.id_inscripcion, i.IdOpcionPago  as id_opcion_pago, c.nombre_curso, op.numero_pagos
+$stmt = $conn->prepare("SELECT i.id_inscripcion, i.IdOpcionPago  as id_opcion_pago, c.nombre_curso, op.numero_pagos, c.costo, c.id_curso, op.costo_adicional, op.nota
                        FROM inscripciones i
                        JOIN cursos c ON i.id_curso = c.id_curso
                        LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
@@ -60,7 +60,7 @@ while ($row = $resPagos->fetch_assoc()) {
 $pagosStmt->close();
 ?>
 <div class="container mt-4">
-    <h3 class="mb-4">Pagos de <?= htmlspecialchars($inscripcion['nombre_curso']) ?></h3>
+    <h3 class="mb-4">Pagos de <?= htmlspecialchars($inscripcion['nombre_curso']) ?> (Costo: $<?= number_format(($inscripcion['costo'] + $inscripcion['costo_adicional']), 2) ?>)</h3>
 
     <table class="table table-bordered">
         <thead class="table-light">
@@ -106,12 +106,11 @@ $pagosStmt->close();
             </select>
         </div>
         <div class="mb-3">
-            <label class="form-label">Referencia de Pago</label>
-            <input type="text" name="referencia_pago" class="form-control" required>
+            <input type="text" name="referencia_pago" class="form-control" hidden>
         </div>
         <div class="mb-3">
             <label class="form-label">Monto Pagado</label>
-            <input type="number" step="0.01" name="monto_pagado" class="form-control" required>
+            <input type="number" step="0.01" name="monto_pagado" value="<?php echo ($inscripcion['costo'] + $inscripcion['costo_adicional']) / $inscripcion['numero_pagos'] ?>" class="form-control" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Comprobante (PDF/Imagen)</label>
