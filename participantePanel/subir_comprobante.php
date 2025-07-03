@@ -15,7 +15,7 @@ $conn = $database->getConnection();
 
 try {
     // 1. Validar que la inscripción pertenece al participante y obtener opción de pago
-    $checkStmt = $conn->prepare("SELECT id_inscripcion, id_opcion_pago FROM inscripciones WHERE id_inscripcion = ? AND id_participante = ?");
+    $checkStmt = $conn->prepare("SELECT id_inscripcion, IdOpcionPago  FROM inscripciones WHERE id_inscripcion = ? AND id_participante = ?");
     $checkStmt->bind_param("ii", $_POST['id_inscripcion'], $_SESSION['participante_id']);
     $checkStmt->execute();
     $resultCheck = $checkStmt->get_result();
@@ -25,7 +25,7 @@ try {
     }
 
     $inscripcionData = $resultCheck->fetch_assoc();
-    $id_opcion_pago = $inscripcionData['id_opcion_pago'];
+    $id_opcion_pago = $inscripcionData['IdOpcionPago'];
 
     // 2. Validar archivo
     $target_dir = "../comprobantes/";

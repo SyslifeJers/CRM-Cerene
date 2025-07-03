@@ -85,8 +85,8 @@ try {
             throw new Exception('Opción de pago no válida');
         }
         $stmt = $database->getConnection()->prepare("UPDATE inscripciones
-            SET id_opcion_pago = ?,
-                estado = 'pagos_programados',
+            SET IdOpcionPago  = ?,
+                estado = 'pagos programados',
                 fecha_cambio_estado = CURRENT_TIMESTAMP
             WHERE id_inscripcion = ?");
         $stmt->bind_param("ii", $id_opcion, $id_inscripcion);

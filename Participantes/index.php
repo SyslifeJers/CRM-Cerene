@@ -31,8 +31,7 @@ $opciones_pago = [];
 $stmtOpc = $database->getConnection()->prepare("SELECT op.id_opcion, op.numero_pagos, f.tipo, f.dias
                         FROM opciones_pago op
                         JOIN frecuencia_pago f ON op.id_frecuencia = f.id_frecuencia
-                        WHERE op.id_curso = ? AND op.activo = 1");
-$stmtOpc->bind_param("i", $id_curso);
+                        WHERE op.activo = 1");
 $stmtOpc->execute();
 $opciones_pago = $stmtOpc->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmtOpc->close();

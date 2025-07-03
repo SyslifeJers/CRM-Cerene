@@ -112,12 +112,6 @@ class Database
                     $estado = '<span class="badge bg-danger">Inactivo</span>';
                 }
 
-                $btnPago = '';
-if ($row['requiere_pago'] == 1) {
-    $btnPago = '<a href="AltaPagos.php?id_curso=' . $row['id_curso'] . '" class="btn btn-success" title="Subir métodos de pago">
-                    <i class="fas fa-money-bill-wave"></i>
-                </a>';
-}
                 $html .= '
             <tr>
                 <td>' . $row["id_curso"] . '</td>
@@ -161,7 +155,7 @@ if ($row['requiere_pago'] == 1) {
                         <a href="curso.php?id=' . $row['id_curso'] . '" class="btn btn-info" title="Ver curso">
                             <i class="fas fa-eye"></i>
                         </a>
-                        ' . $btnPago . '
+                        
                     </div>
                 </td>
             </tr>';
@@ -372,7 +366,7 @@ if ($row['requiere_pago'] == 1) {
                 i.id_inscripcion, 
                 i.id_curso,
                 i.id_participante,
-                i.id_opcion_pago,
+                i.IdOpcionPago as id_opcion_pago,
                 i.estado,
                 i.metodo_pago,
                 i.monto_pagado,
@@ -408,7 +402,7 @@ if ($row['requiere_pago'] == 1) {
                     'pendiente_pago' => 'bg-warning',
                     'comprobante_enviado' => 'bg-info',
                     'revision_pago' => 'bg-primary',
-                    'pagos_programados' => 'bg-info',
+                    'pagos programados' => 'bg-info',
                     'pago_validado' => 'bg-success',
                     'rechazado' => 'bg-danger'
                 ];
@@ -436,7 +430,7 @@ if ($row['requiere_pago'] == 1) {
                 <td>' . $fecha_inscripcion . '</td>
                 <td>
                     <span class="badge ' . $badgeClass[$row["estado"]] . '">
-                        ' . ucfirst(str_replace('_', ' ', $row["estado"])) . '
+                        ' . $row["estado"] . '
                     </span><br>
                     <small>' . $fecha_cambio . '</small>
                 </td>

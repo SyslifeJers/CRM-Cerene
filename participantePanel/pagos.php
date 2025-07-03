@@ -18,10 +18,10 @@ $database = new Database();
 $conn = $database->getConnection();
 
 // Verificar que la inscripción pertenece al participante y obtener datos del curso y opción de pago
-$stmt = $conn->prepare("SELECT i.id_inscripcion, i.id_opcion_pago, c.nombre_curso, op.numero_pagos
+$stmt = $conn->prepare("SELECT i.id_inscripcion, i.IdOpcionPago  as id_opcion_pago, c.nombre_curso, op.numero_pagos
                        FROM inscripciones i
                        JOIN cursos c ON i.id_curso = c.id_curso
-                       LEFT JOIN opciones_pago op ON i.id_opcion_pago = op.id_opcion
+                       LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
                        WHERE i.id_inscripcion = ? AND i.id_participante = ?");
 $stmt->bind_param("ii", $id_inscripcion, $_SESSION['participante_id']);
 $stmt->execute();
