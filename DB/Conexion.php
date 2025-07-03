@@ -415,14 +415,16 @@ class Database
                 $fecha_inscripcion = date('d/m/Y H:i', strtotime($row['fecha_inscripcion']));
                 $fecha_cambio = $row['fecha_cambio_estado'] ? date('d/m/Y H:i', strtotime($row['fecha_cambio_estado'])) : 'N/A';
 
-                // Botón de comprobante
-                $botonComprobante = $row['comprobante_path']
-                    ? '<button class="btn btn-sm btn-info ver-comprobante" 
-                     data-id="' . $row['id_inscripcion'] . '" 
-                     data-archivo="' . $row['comprobante_path'] . '">
-                     <i class="fas fa-file-invoice"></i> Ver
-                   </button>'
-                    : 'N/A';
+                // Botón o enlace de comprobante según la opción de pago
+                if ($row['id_opcion_pago']) {
+                    // Múltiples pagos: ir a pantalla de gestión
+                    $botonComprobante = '<a href="pagos.php?id=' . $row['id_inscripcion'] . '" class="btn btn-sm btn-info"><i class="fas fa-file-invoice"></i> Ver</a>';
+                } else {
+                    // Pago único: mostrar visor modal existente
+                    $botonComprobante = $row['comprobante_path']
+                        ? '<button class="btn btn-sm btn-info ver-comprobante" data-id="' . $row['id_inscripcion'] . '" data-archivo="' . $row['comprobante_path'] . '"><i class="fas fa-file-invoice"></i> Ver</button>'
+                        : 'N/A';
+                }
 
                 $html .= '
             <tr>
