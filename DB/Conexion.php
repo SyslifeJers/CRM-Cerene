@@ -710,18 +710,9 @@ public function getCursoById($id_curso) {
     }
 }
 
-public function getFormasPago() {
-    $query = "SELECT id_forma_pago, nombre, IFNULL(adicional,0) AS adicional FROM formas_pago ORDER BY nombre";
-    $result = $this->conn->query($query);
-    if ($result) {
-        return $result->fetch_all(MYSQLI_ASSOC);
-    }
-    return [];
-}
 
-public function getOpcionesPagoCurso($id_curso) {
-    $stmt = $this->conn->prepare("SELECT id_opcion, numero_pagos FROM opciones_pago WHERE id_curso = ? AND activo = 1");
-    $stmt->bind_param("i", $id_curso);
+public function getOpcionesPagoCurso() {
+    $stmt = $this->conn->prepare("SELECT `id_opcion`, `numero_pagos`, a.`id_frecuencia`,f.tipo, `activo`, `costo_adicional`, `nota` FROM `opciones_pago` a INNER join frecuencia_pago f on f.id_frecuencia = a.id_frecuencia WHERE `activo` = 1;");
     $stmt->execute();
     $result = $stmt->get_result();
     return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];

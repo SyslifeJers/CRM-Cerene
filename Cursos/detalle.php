@@ -14,8 +14,7 @@ if (!$curso) {
     exit();
 }
 
-$formas_pago = $database->getFormasPago();
-$opciones_pago = $database->getOpcionesPagoCurso($id_curso);
+$opciones_pago = $database->getOpcionesPagoCurso();
 ?>
 <div class="row">
   <div class="col-md-8 mx-auto">
@@ -40,29 +39,20 @@ $opciones_pago = $database->getOpcionesPagoCurso($id_curso);
         <?php if (!empty($opciones_pago)): ?>
         <div class="mb-3">
           <label class="form-label">Opción de Pago</label>
-          <select id="opcionPago" class="form-select">
+          <select id="opcionPago" class="form-select" onchange="manejarCambio()">
             <?php foreach ($opciones_pago as $op): ?>
-            <option value="<?= $op['numero_pagos'] ?>">
-              <?= $op['numero_pagos'] ?> pagos
-            </option>
+              <option 
+                value="<?= $op['id_opcion'] ?>"
+                data-numero="<?= $op['numero_pagos'] ?>" 
+                data-adicional="<?= $op['costo_adicional'] ?>">
+                <?= $op['numero_pagos'] ?> pago<?= $op['numero_pagos'] > 1 ? 's' : '' ?> de <?= $op['tipo'] ?> 
+                (Adicional: $<?= number_format($op['costo_adicional'], 2) ?>) / Nota: <?= htmlspecialchars($op['nota']) ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
         <?php endif; ?>
 
-        <?php if (!empty($formas_pago)): ?>
-        <div class="mb-3">
-          <label class="form-label">Forma de Pago</label>
-          <select id="formaPago" class="form-select">
-            <option value="">Selecciona</option>
-            <?php foreach ($formas_pago as $fp): ?>
-            <option value="<?= $fp['id_forma_pago'] ?>" data-adicional="<?= $fp['adicional'] ?? 0 ?>">
-              <?= htmlspecialchars($fp['nombre']) ?>
-            </option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <?php endif; ?>
 
         <div id="infoPago" class="alert alert-info d-none"></div>
 
@@ -73,35 +63,32 @@ $opciones_pago = $database->getOpcionesPagoCurso($id_curso);
   </div>
 </div>
 <?php include '../Modulos/Footer.php'; ?>
-
 <script>
-const opcionPago = document.getElementById('opcionPago');
-const formaPago = document.getElementById('formaPago');
-const infoPago  = document.getElementById('infoPago');
-const btnCompartir = document.getElementById('btnCompartir');
+  const btnCompartir = document.getElementById('btnCompartir');
+const formaPago = document.getElementById('opcionPago');
 
-function actualizarInfo() {
-  const numPagos = parseInt(opcionPago?.value || '1');
-  const adicional = parseFloat(formaPago?.selectedOptions[0]?.dataset.adicional || '0');
-  if (formaPago && formaPago.value) {
-    const total = <?= (float)$curso['costo'] ?> + adicional;
-    const porPago = total / numPagos;
-    infoPago.textContent = `${numPagos} pagos de $${porPago.toFixed(2)} (total $${total.toFixed(2)})`;
-    infoPago.classList.remove('d-none');
-    btnCompartir.disabled = false;
-  } else {
-    infoPago.classList.add('d-none');
-    btnCompartir.disabled = true;
-  }
+function manejarCambio() {
+  const select = document.getElementById('opcionPago');
+  const opcionSeleccionada = select.options[select.selectedIndex];
+  
+  const id = select.value;
+  const numeroPagos = opcionSeleccionada.getAttribute('data-numero');
+  const adicional = parseFloat(opcionSeleccionada.getAttribute('data-adicional'));
+
+  actualizarInfo(id, numeroPagos, adicional);
 }
 
-opcionPago?.addEventListener('change', actualizarInfo);
-formaPago?.addEventListener('change', actualizarInfo);
-
-btnCompartir?.addEventListener('click', function() {
+function actualizarInfo(id, numeroPagos, adicional = 0) {
+  const total = <?= (float)$curso['costo'] ?> + adicional;
+  const porPago = total / numeroPagos;
+  infoPago.textContent = `${numeroPagos} pagos de $${porPago.toFixed(2)} (total $${total.toFixed(2)})`;
+  infoPago.classList.remove('d-none');
+  btnCompartir.disabled = false;
+}
+  btnCompartir?.addEventListener('click', function() {
   const idFp = formaPago.value;
   if (!idFp) return;
-  const link = '../Registro.php?clave=<?= $curso['clave_curso'] ?>-' + idFp;
+  const link = 'https://cursos.clinicacerene.com/Registro.php?clave=<?= $curso['clave_curso'] ?>-' + idFp;
   navigator.clipboard.writeText(link).then(() => alert('Enlace copiado: ' + link));
 });
 </script>
