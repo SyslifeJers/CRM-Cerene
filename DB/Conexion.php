@@ -359,6 +359,7 @@ class Database
                     <th>Método Pago</th>
                     <th>Monto</th>
                     <th>Comprobante</th>
+                    <th>Documento</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -380,7 +381,8 @@ class Database
                 p.nombre as nombre_participante,
                 p.apellido as apellido_participante,
                 p.email as email_participante,
-                p.telefono as telefono_participante
+                p.telefono as telefono_participante,
+                p.documento
               FROM inscripciones i
               LEFT JOIN cursos c ON i.id_curso = c.id_curso
               LEFT JOIN participantes p ON i.id_participante = p.id_participante";
@@ -426,6 +428,11 @@ class Database
                         : 'N/A';
                 }
 
+                // Documento de estudios
+                $botonDocumento = $row['documento']
+                    ? '<a href="../documentos/' . $row['documento'] . '" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-file"></i> Ver</a>'
+                    : '<span class="text-danger">No subido</span>';
+
                 $html .= '
             <tr>
                 <td>' . $row["id_inscripcion"] . '</td>
@@ -443,6 +450,7 @@ class Database
                 <td>' . ($row["metodo_pago"] ?: 'N/A') . '</td>
                 <td class="text-end">' . ($row["monto_pagado"] ? '$' . number_format($row["monto_pagado"], 2) : 'N/A') . '</td>
                 <td class="text-center">' . $botonComprobante . '</td>
+                <td class="text-center">' . $botonDocumento . '</td>
                 <td class="text-center">
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
