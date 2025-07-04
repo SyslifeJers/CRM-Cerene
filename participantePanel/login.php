@@ -42,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
     <title>Iniciar Sesión</title>
+        <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link
 
         rel="icon"
@@ -110,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container mt-5">
         <div class="row justify-content-center">
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
                 <div class="card">
                     <div class="card-header">
                         <h4>Iniciar Sesión</h4>
@@ -131,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="password" name="pass" class="form-control" required>
                             </div>
 
-                            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                            <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
                         </form>
 
                         <div class="mt-3">

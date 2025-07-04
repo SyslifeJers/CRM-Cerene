@@ -156,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="tel" class="form-control" id="telefono" name="telefono" required>
                             </div>
                             <div class="mb-3">
-                                <label for="cedula" class="form-label">Cédula</label>
+                                <label for="cedula" class="form-label">Cédula profesional</label>
                                 <input type="text" class="form-control" id="cedula" name="cedula" >
                             </div>
                             <div class="row">

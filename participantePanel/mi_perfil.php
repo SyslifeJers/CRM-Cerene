@@ -37,7 +37,7 @@ $stmt->close();
             <input type="text" name="apellido" class="form-control" value="<?= htmlspecialchars($apellido) ?>" required>
         </div>
         <div class="mb-3">
-            <label class="form-label">Cédula</label>
+            <label class="form-label">Cédula profesional</label>
             <input type="text" name="cedula" class="form-control" value="<?= htmlspecialchars($cedula) ?>" required>
         </div>
         <div class="mb-3">

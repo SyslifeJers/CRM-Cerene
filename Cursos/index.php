@@ -72,6 +72,6 @@ include '../Modulos/Head.php';
         }
     });
 }
-
+new DataTable('#cursosTable');
     </script>
     

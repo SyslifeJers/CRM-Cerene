@@ -1,5 +1,5 @@
 <?php
-include '../../Modulos/head.php';
+include '../../Modulos/Head.php';
 require_once '../../DB/Conexion.php';
 
 $id_contenido = $_GET['id'] ?? null;

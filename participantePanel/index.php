@@ -100,7 +100,7 @@ $stmtCedula->close();
               <div class="card-body">
                 <p><strong>Nombre:</strong> <?= htmlspecialchars($_SESSION['nombre']) ?></p>
                 <p><strong>Email:</strong> <?= htmlspecialchars($_SESSION['email']) ?></p>
-                <p class="d-flex align-items-center"><strong class="me-2">Cédula:</strong>
+                <p class="d-flex align-items-center"><strong class="me-2">Cédula profesional:</strong>
                   <input type="password" id="cedulaInput" class="form-control-plaintext me-2" value="<?= htmlspecialchars($cedula) ?>" readonly style="width:auto;">
                   <button type="button" id="toggleCedula" class="btn btn-link p-0"><i class="fas fa-eye"></i></button>
                 </p>
@@ -141,46 +141,57 @@ while ($row = $result->fetch_assoc()):
 ?>
     <!-- Elimina los modales PHP y reemplaza con este código al final del archivo, antes del footer -->
     <div id="modalComprobante" class="modal">
-      <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h3 id="modalTitle"></h3>
-        <form id="formComprobante" enctype="multipart/form-data">
-          <input type="hidden" id="idInscripcion" name="id_inscripcion">
+      <div class="modal-content" style="width:90%;max-width:500px;margin:10% auto;">
+      <span class="close-modal">&times;</span>
+      <h3 id="modalTitle"></h3>
+      <form id="formComprobante" enctype="multipart/form-data">
+        <input type="hidden" id="idInscripcion" name="id_inscripcion">
 
-          <div class="form-group">
-            <label>Método de Pago</label>
-            <select name="metodo_pago" class="form-control" required>
-              <option value="">Seleccionar...</option>
-              <option value="Transferencia">Transferencia Bancaria</option>
-              <option value="Deposito">Depósito</option>
-              <option value="Paypal">PayPal</option>
-              <option value="Tarjeta">Tarjeta de Crédito/Débito</option>
-            </select>
-          </div>
+        <div class="form-group">
+        <label>Método de Pago</label>
+        <select name="metodo_pago" class="form-control" required>
+          <option value="">Seleccionar...</option>
+          <option value="Transferencia">Transferencia Bancaria</option>
+          <option value="Oxxo">Oxxo</option>
+          <option value="Deposito">Depósito</option>
+          <option value="Paypal">PayPal</option>
+          <option value="Tarjeta">Tarjeta de Crédito/Débito</option>
+        </select>
+        </div>
 
-          <div class="form-group">
-            <label>Referencia de Pago</label>
-            <input type="text" name="referencia_pago" class="form-control" required>
-          </div>
+        <div class="form-group">
+        <label>Referencia de Pago</label>
+        <input type="text" name="referencia_pago" class="form-control" required>
+        </div>
 
-          <div class="form-group">
-            <label>Monto Pagado</label>
-            <input type="number" step="0.01" name="monto_pagado" class="form-control" required>
-          </div>
+        <div class="form-group">
+        <label>Monto Pagado</label>
+        <input type="number" step="0.01" name="monto_pagado" class="form-control" required>
+        </div>
 
-          <div class="form-group">
-            <label>Comprobante (PDF/Imagen)</label>
-            <input type="file" name="comprobante" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required>
-            <small class="form-text text-muted">Formatos aceptados: PDF, JPG, PNG (Máx. 2MB)</small>
-          </div>
+        <div class="form-group">
+        <label>Comprobante (PDF/Imagen)</label>
+        <input type="file" name="comprobante" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required>
+        <small class="form-text text-muted">Formatos aceptados: PDF, JPG, PNG (Máx. 2MB)</small>
+        </div>
 
-          <div class="form-group text-right">
-            <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Enviar Comprobante</button>
-          </div>
-        </form>
+        <div class="form-group text-right">
+        <button type="button" class="btn btn-sm btn-secondary close-modal">Cancelar</button>
+        <button type="submit" class="btn btn-sm btn-primary">Enviar Comprobante</button>
+        </div>
+      </form>
       </div>
     </div>
+    <style>
+      @media (max-width: 600px) {
+      .modal-content {
+        width: 98% !important;
+        max-width: 98vw !important;
+        margin: 20% auto !important;
+        padding: 10px !important;
+      }
+      }
+    </style>
 
     <style>
       .modal {

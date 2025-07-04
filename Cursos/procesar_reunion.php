@@ -22,6 +22,7 @@ $fecha_hora = $_POST['fecha_hora'] ?? '';
 $duracion = intval($_POST['duracion_minutos'] ?? 60);
 $url_zoom = trim($_POST['url_zoom'] ?? '');
 $codigo_acceso = trim($_POST['codigo_acceso'] ?? '');
+$pago_necesario = isset($_POST['pago_necesario']) ? floatval($_POST['pago_necesario']) : 0.0;
 
 // Validaciones básicas
 $errores = [];
@@ -66,8 +67,8 @@ try {
 
     // Insertar en la base de datos
     $stmt = $conn->prepare("INSERT INTO reuniones_zoom 
-                          (id_curso, titulo, descripcion, fecha_hora, duracion_minutos, url_zoom, codigo_acceso) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?)");
+                          (id_curso, titulo, descripcion, fecha_hora, duracion_minutos, url_zoom, codigo_acceso, PagoPorce) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     
     $stmt->bind_param("isssiss", 
                      $id_curso,
@@ -76,8 +77,9 @@ try {
                      $fecha_hora,
                      $duracion,
                      $url_zoom,
-                     $codigo_acceso);
-    
+                     $codigo_acceso,
+                     $pago_necesario);
+
     if (!$stmt->execute()) {
         throw new Exception("Error al guardar en la base de datos: " . $conn->error);
     }

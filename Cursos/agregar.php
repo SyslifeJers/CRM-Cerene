@@ -47,6 +47,11 @@ if (!$id_curso) {
           <div class="form-group">
             <label for="codigo_acceso">Código de Acceso (opcional)</label>
             <input type="text" class="form-control" id="codigo_acceso" name="codigo_acceso">
+          </div>         
+          
+          <div class="form-group">
+            <label for="pago_necesario">Pago necesario($)</label>
+            <input type="number" class="form-control" id="pago_necesario" name="pago_necesario">
           </div>
           
           <button type="submit" class="btn btn-primary">Programar Reunión</button>

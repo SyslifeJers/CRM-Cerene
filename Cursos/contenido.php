@@ -50,7 +50,12 @@ if (!$id_curso) {
             <label for="orden">Orden de visualización</label>
             <input type="number" class="form-control" id="orden" name="orden" min="0" value="0">
           </div>
-          
+
+          <div class="form-group">
+            <label for="pago_necesario">Pago necesario ($)</label>
+            <input type="number" class="form-control" id="pago_necesario" name="pago_necesario" min="0" step="0.01" value="0">
+          </div>
+
           <button type="submit" class="btn btn-primary">Guardar Contenido</button>
         </form>
       </div>

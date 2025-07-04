@@ -19,7 +19,7 @@ $titulo = trim($_POST['titulo'] ?? '');
 $descripcion = trim($_POST['descripcion'] ?? '');
 $tipo_contenido = $_POST['tipo_contenido'] ?? '';
 $orden = intval($_POST['orden'] ?? 0);
-
+$pago_necesario = isset($_POST['pago_necesario']) ? floatval($_POST['pago_necesario']) : 0.0;
 // Validaciones básicas
 if (empty($titulo) || empty($tipo_contenido)) {
     header("Location:agregar.php?id_curso=$id_curso&error=campos_requeridos");
@@ -103,18 +103,19 @@ try {
 
     // Insertar en la base de datos
     $stmt = $conn->prepare("INSERT INTO contenido_curso 
-                          (id_curso, titulo, descripcion, tipo_contenido, archivo_ruta, enlace_url, orden) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?)");
-    
-    $stmt->bind_param("isssssi", 
+                          (id_curso, titulo, descripcion, tipo_contenido, archivo_ruta, enlace_url, orden, PagoPorce) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+    $stmt->bind_param("issssssi", 
                      $id_curso,
                      $titulo,
                      $descripcion,
                      $tipo_contenido,
                      $archivo_ruta,
                      $enlace_url,
-                     $orden);
-    
+                     $orden,
+                     $pago_necesario);
+
     if (!$stmt->execute()) {
         // Si falla la inserción, eliminar archivo subido si existe
         if ($archivo_ruta && file_exists("../$archivo_ruta")) {
