@@ -21,11 +21,11 @@ $stmt->bind_param("i", $participante_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Obtener cédula del participante
-$stmtCedula = $database->getConnection()->prepare("SELECT cedula FROM participantes WHERE id_participante = ?");
+// Obtener cédula y documento del participante
+$stmtCedula = $database->getConnection()->prepare("SELECT cedula, documento FROM participantes WHERE id_participante = ?");
 $stmtCedula->bind_param("i", $participante_id);
 $stmtCedula->execute();
-$stmtCedula->bind_result($cedula);
+$stmtCedula->bind_result($cedula, $documento);
 $stmtCedula->fetch();
 $stmtCedula->close();
 ?>
@@ -124,12 +124,32 @@ $stmtCedula->close();
                   <i class="fas fa-plus"></i> Agregar Curso
                 </button>
               </form>
-              <div id="mensajeClave" class="mt-2"></div>
-            </div>
-          </div>
+          <div id="mensajeClave" class="mt-2"></div>
+        </div>
+      </div>
+      <div class="card col-lg-4 mb-4">
+        <div class="card-header">
+          <h5>Documento de Estudios</h5>
+        </div>
+        <div class="card-body">
+          <?php if ($documento): ?>
+            <a href="../documentos/<?= htmlspecialchars($documento) ?>" target="_blank" class="btn btn-info mb-2">
+              <i class="fas fa-file"></i> Ver Documento
+            </a>
+            <p>Si deseas reemplazarlo, sube uno nuevo.</p>
+          <?php else: ?>
+            <div class="alert alert-warning">Es importante subir tu documento.</div>
+          <?php endif; ?>
+          <form id="formDocumento" enctype="multipart/form-data">
+            <input type="file" name="documento" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required>
+            <button type="submit" class="btn btn-primary mt-2">Subir documento</button>
+          </form>
+          <div id="msgDocumento" class="mt-2"></div>
         </div>
       </div>
     </div>
+  </div>
+</div>
   </div>
 </div>
 
@@ -346,6 +366,29 @@ endwhile;
       .finally(() => {
         boton.disabled = false;
         boton.innerHTML = '<i class="fas fa-plus"></i> Agregar Curso';
+      });
+  });
+
+  // Subir documento de estudios
+  document.getElementById('formDocumento').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+    fetch('subir_documento.php', { method: 'POST', body: formData })
+      .then(r => r.json())
+      .then(d => {
+        const div = document.getElementById('msgDocumento');
+        div.innerHTML = `<div class="alert alert-${d.success ? 'success' : 'danger'}">${d.message}</div>`;
+        if (d.success) setTimeout(() => location.reload(), 1000);
+      })
+      .catch(() => {
+        document.getElementById('msgDocumento').innerHTML = '<div class="alert alert-danger">Error en la conexión</div>';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = 'Subir documento';
       });
   });
 
