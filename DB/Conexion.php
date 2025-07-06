@@ -729,14 +729,15 @@ public function getOpcionesPagoCurso() {
     return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 }
 public function getContenidoCursoParticipante($id_curso) {
-    $query = "SELECT 
-                id_contenido, 
-                titulo, 
-                descripcion, 
-                tipo_contenido, 
-                archivo_ruta, 
+    $query = "SELECT
+                id_contenido,
+                titulo,
+                descripcion,
+                tipo_contenido,
+                archivo_ruta,
                 enlace_url,
-                fecha_publicacion
+                fecha_publicacion,
+                PagoPorce
               FROM contenido_curso
               WHERE id_curso = ?
               ORDER BY orden, fecha_publicacion DESC";
@@ -750,7 +751,7 @@ public function getContenidoCursoParticipante($id_curso) {
 }
 
 public function getReunionesZoomParticipante($id_curso) {
-    $query = "SELECT 
+    $query = "SELECT
                 id_reunion,
                 titulo,
                 descripcion,
@@ -758,7 +759,8 @@ public function getReunionesZoomParticipante($id_curso) {
                 duracion_minutos,
                 url_zoom,
                 codigo_acceso,
-                grabacion_url
+                grabacion_url,
+                PagoPorce
               FROM reuniones_zoom
               WHERE id_curso = ?
               ORDER BY fecha_hora DESC";

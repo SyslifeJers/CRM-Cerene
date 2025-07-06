@@ -12,7 +12,11 @@ require_once '../DB/Conexion.php';
 $database = new Database();
 
 $participante_id = $_SESSION['participante_id'];
-$query = "SELECT i.id_inscripcion, i.IdOpcionPago as id_opcion_pago, c.clave_curso, c.nombre_curso, i.estado, i.fecha_inscripcion
+$query = "SELECT i.id_inscripcion, i.IdOpcionPago as id_opcion_pago, c.clave_curso, c.nombre_curso, i.estado, i.fecha_inscripcion,
+                 COALESCE((SELECT SUM(monto_pagado)
+                           FROM comprobantes_inscripcion ci
+                           WHERE ci.validado = 1
+                             AND ci.id_inscripcion = i.id_inscripcion), 0) AS total_pagado
           FROM inscripciones i
           JOIN cursos c ON i.id_curso = c.id_curso
           WHERE i.id_participante = ?";
@@ -77,7 +81,7 @@ $stmtCedula->close();
                           </button>
 
                         <?php endif; ?>
-                        <?php if ($row['estado'] == 'pago_validado'): ?>
+                        <?php if ($row['estado'] == 'pago_validado' || $row['total_pagado'] > 0): ?>
                           <a href="curso/contenido.php?clave=<?= $row['clave_curso'] ?>" class="btn btn-sm btn-primary">
 
                             Ir al Curso
