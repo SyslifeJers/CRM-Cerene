@@ -18,7 +18,7 @@ $database = new Database();
 $participante_id = $_SESSION['participante_id'];
 
 // Verificar que el participante está inscrito en el curso
-$query = "SELECT c.id_curso, c.nombre_curso, i.estado 
+$query = "SELECT c.id_curso, c.nombre_curso, c.costo, i.id_inscripcion, i.estado
           FROM cursos c
           JOIN inscripciones i ON c.id_curso = i.id_curso
           WHERE c.clave_curso = ? AND i.id_participante = ?";
@@ -34,6 +34,21 @@ if ($result->num_rows === 0) {
 
 $curso = $result->fetch_assoc();
 $id_curso = $curso['id_curso'];
+$id_inscripcion = $curso['id_inscripcion'];
+$costo_curso = $curso['costo'];
+
+// Total pagado con comprobantes validados
+$stmtPago = $database->getConnection()->prepare(
+    "SELECT SUM(monto_pagado) AS total_pagado
+       FROM comprobantes_inscripcion
+      WHERE validado = 1 AND id_inscripcion = ?"
+);
+$stmtPago->bind_param("i", $id_inscripcion);
+$stmtPago->execute();
+$resPago = $stmtPago->get_result();
+$rowPago = $resPago->fetch_assoc();
+$total_pagado = $rowPago ? floatval($rowPago['total_pagado']) : 0.0;
+$stmtPago->close();
 
 // Obtener contenido del curso
 $contenido = $database->getContenidoCursoParticipante($id_curso);
@@ -85,7 +100,11 @@ $contenido = $database->getContenidoCursoParticipante($id_curso);
                                         'tarea' => 'fa-tasks text-info'
                                     ];
                                     ?>
-                                    <?php foreach ($contenido as $item): ?>
+                                    <?php foreach ($contenido as $item):
+                                        $requiere = isset($item['PagoPorce']) ? floatval($item['PagoPorce']) : 0;
+                                        $acceso = $requiere == 0 || $total_pagado >= ($costo_curso * $requiere / 100);
+                                        if (!$acceso) continue;
+                                    ?>
                                         <tr>
                                             <td class="text-center align-middle">
                                                 <?php

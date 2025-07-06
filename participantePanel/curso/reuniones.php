@@ -18,7 +18,7 @@ require_once '../../DB/Conexion.php';
 $database = new Database();
 $participante_id = $_SESSION['participante_id'];
 
-$query = "SELECT c.id_curso, c.nombre_curso, i.estado 
+$query = "SELECT c.id_curso, c.nombre_curso, c.costo, i.id_inscripcion, i.estado
           FROM cursos c
           JOIN inscripciones i ON c.id_curso = i.id_curso
           WHERE c.clave_curso = ? AND i.id_participante = ?";
@@ -34,6 +34,22 @@ if ($result->num_rows === 0) {
 
 $curso = $result->fetch_assoc();
 $id_curso = $curso['id_curso'];
+$id_inscripcion = $curso['id_inscripcion'];
+$costo_curso = $curso['costo'];
+
+// Total pagado validado
+$stmtPago = $database->getConnection()->prepare(
+    "SELECT SUM(monto_pagado) AS total_pagado
+       FROM comprobantes_inscripcion
+      WHERE validado = 1 AND id_inscripcion = ?"
+);
+$stmtPago->bind_param("i", $id_inscripcion);
+$stmtPago->execute();
+$resPago = $stmtPago->get_result();
+$rowPago = $resPago->fetch_assoc();
+$total_pagado = $rowPago ? floatval($rowPago['total_pagado']) : 0.0;
+$stmtPago->close();
+
 $reuniones = $database->getReunionesZoomParticipante($id_curso);
 ?>
 
@@ -72,7 +88,10 @@ $reuniones = $database->getReunionesZoomParticipante($id_curso);
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($reuniones as $reunion): 
+                                    <?php foreach ($reuniones as $reunion):
+                                        $requiere = isset($reunion['PagoPorce']) ? floatval($reunion['PagoPorce']) : 0;
+                                        $acceso = $requiere == 0 || $total_pagado >= ($costo_curso * $requiere / 100);
+                                        if (!$acceso) continue;
                                         $fecha_reunion = new DateTime($reunion['fecha_hora']);
                                         $fin_reunion = (clone $fecha_reunion)->add(new DateInterval('PT'.$reunion['duracion_minutos'].'M'));
                                         $inicio_visible = (clone $fecha_reunion)->sub(new DateInterval('PT15M'));
@@ -152,7 +171,10 @@ function iniciarContador(id, fechaInicioStr) {
 }
 
 window.addEventListener('load', function () {
-    <?php foreach ($reuniones as $reunion): 
+    <?php foreach ($reuniones as $reunion):
+        $requiere = isset($reunion['PagoPorce']) ? floatval($reunion['PagoPorce']) : 0;
+        $acceso = $requiere == 0 || $total_pagado >= ($costo_curso * $requiere / 100);
+        if (!$acceso) continue;
         $fecha_reunion = new DateTime($reunion['fecha_hora']);
         $fin_reunion = (clone $fecha_reunion)->add(new DateInterval('PT' . $reunion['duracion_minutos'] . 'M'));
         $inicio_visible = (clone $fecha_reunion)->sub(new DateInterval('PT15M'));
