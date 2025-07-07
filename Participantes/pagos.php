@@ -159,6 +159,14 @@ $faltante = $inscripcion['costo'] - $total_validado;
     </table>
 </div>
 
+<?php if ($faltante <= 0 && $inscripcion['estado'] !== 'pago_validado'): ?>
+    <div class="text-center my-3">
+        <button id="btnFinalizar" class="btn btn-success">
+            <i class="fas fa-check-circle"></i> Finalizar proceso
+        </button>
+    </div>
+<?php endif; ?>
+
 
 
 
@@ -227,6 +235,33 @@ $(document).ready(function () {
                 }
             }, 'json');
         }
+    });
+
+    $('#btnFinalizar').on('click', function () {
+        Swal.fire({
+            title: '¿Finalizar proceso?',
+            text: 'Se marcará la inscripción como Pago Validado.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, finalizar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('gestion_inscripcion.php', {
+                    accion: 'cambiar_estado',
+                    id_inscripcion: <?php echo $id_inscripcion; ?>,
+                    estado: 'pago_validado'
+                }, function (res) {
+                    if (res.success) {
+                        Swal.fire('Éxito', res.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                }, 'json');
+            }
+        });
     });
 });
 </script>
