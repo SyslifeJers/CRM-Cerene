@@ -87,6 +87,11 @@ $id_curso = $contenido['id_curso'];
             <input type="number" class="form-control" id="orden" name="orden" min="0" value="<?= $contenido['orden'] ?>">
           </div>
 
+          <div class="form-group">
+            <label for="pago_necesario">Pago necesario ($)</label>
+            <input type="number" class="form-control" id="pago_necesario" name="pago_necesario" min="0" step="0.01" value="<?= isset($contenido['PagoPorce']) ? $contenido['PagoPorce'] : 0 ?>">
+          </div>
+
           <button type="submit" class="btn btn-primary">Actualizar Contenido</button>
         </form>
       </div>
