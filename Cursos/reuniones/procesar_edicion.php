@@ -23,6 +23,7 @@ $fecha_hora = $_POST['fecha_hora'] ?? '';
 $duracion = intval($_POST['duracion_minutos'] ?? 60);
 $url_zoom = trim($_POST['url_zoom'] ?? '');
 $codigo_acceso = trim($_POST['codigo_acceso'] ?? '');
+$pago_necesario = isset($_POST['pago_necesario']) ? floatval($_POST['pago_necesario']) : 0.0;
 
 // Validar datos
 $errores = [];
@@ -60,22 +61,24 @@ try {
     $database = new Database();
     $conn = $database->getConnection();
 
-    $stmt = $conn->prepare("UPDATE reuniones_zoom SET 
-        titulo = ?, 
-        descripcion = ?, 
-        fecha_hora = ?, 
-        duracion_minutos = ?, 
-        url_zoom = ?, 
-        codigo_acceso = ?
+    $stmt = $conn->prepare("UPDATE reuniones_zoom SET
+        titulo = ?,
+        descripcion = ?,
+        fecha_hora = ?,
+        duracion_minutos = ?,
+        url_zoom = ?,
+        codigo_acceso = ?,
+        PagoPorce = ?
         WHERE id_reunion = ?");
 
-    $stmt->bind_param("sssissi", 
+    $stmt->bind_param("sssissii",
         $titulo,
         $descripcion,
         $fecha_hora,
         $duracion,
         $url_zoom,
         $codigo_acceso,
+        $pago_necesario,
         $id_reunion
     );
 

@@ -20,6 +20,7 @@ $titulo = trim($_POST['titulo'] ?? '');
 $descripcion = trim($_POST['descripcion'] ?? '');
 $orden = intval($_POST['orden'] ?? 0);
 $enlace_url = trim($_POST['enlace_url'] ?? '');
+$pago_necesario = isset($_POST['pago_necesario']) ? floatval($_POST['pago_necesario']) : 0.0;
 
 $errores = [];
 
@@ -74,11 +75,11 @@ if (!empty($errores)) {
 // Actualizar en base de datos
 try {
     if ($tipo_contenido === 'enlace') {
-        $stmt = $conn->prepare("UPDATE contenido_curso SET titulo = ?, descripcion = ?, enlace_url = ?, orden = ? WHERE id_contenido = ?");
-        $stmt->bind_param("sssii", $titulo, $descripcion, $enlace_url, $orden, $id_contenido);
+        $stmt = $conn->prepare("UPDATE contenido_curso SET titulo = ?, descripcion = ?, enlace_url = ?, orden = ?, PagoPorce = ? WHERE id_contenido = ?");
+        $stmt->bind_param("sssiii", $titulo, $descripcion, $enlace_url, $orden, $pago_necesario, $id_contenido);
     } else {
-        $stmt = $conn->prepare("UPDATE contenido_curso SET titulo = ?, descripcion = ?, archivo_ruta = ?, orden = ? WHERE id_contenido = ?");
-        $stmt->bind_param("sssii", $titulo, $descripcion, $ruta_destino, $orden, $id_contenido);
+        $stmt = $conn->prepare("UPDATE contenido_curso SET titulo = ?, descripcion = ?, archivo_ruta = ?, orden = ?, PagoPorce = ? WHERE id_contenido = ?");
+        $stmt->bind_param("sssiii", $titulo, $descripcion, $ruta_destino, $orden, $pago_necesario, $id_contenido);
     }
 
     if (!$stmt->execute()) {

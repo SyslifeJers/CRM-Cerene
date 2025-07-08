@@ -71,10 +71,15 @@ $id_curso = $reunion['id_curso'];
             <input type="url" class="form-control" id="url_zoom" name="url_zoom" value="<?= htmlspecialchars($reunion['url_zoom']) ?>" required>
           </div>
 
-          <div class="form-group">
-            <label for="codigo_acceso">Código de Acceso (opcional)</label>
-            <input type="text" class="form-control" id="codigo_acceso" name="codigo_acceso" value="<?= htmlspecialchars($reunion['codigo_acceso']) ?>">
-          </div>
+            <div class="form-group">
+              <label for="codigo_acceso">Código de Acceso (opcional)</label>
+              <input type="text" class="form-control" id="codigo_acceso" name="codigo_acceso" value="<?= htmlspecialchars($reunion['codigo_acceso']) ?>">
+            </div>
+
+            <div class="form-group">
+              <label for="pago_necesario">Pago necesario ($)</label>
+              <input type="number" class="form-control" id="pago_necesario" name="pago_necesario" min="0" step="0.01" value="<?= isset($reunion['PagoPorce']) ? $reunion['PagoPorce'] : 0 ?>">
+            </div>
 
           <button type="submit" class="btn btn-primary">Actualizar Reunión</button>
         </form>
