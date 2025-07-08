@@ -439,6 +439,7 @@ class Database
                 <td>
                     <strong>' . htmlspecialchars($row["nombre_participante"]) . ' ' . htmlspecialchars($row["apellido_participante"]) . '</strong><br>
                     <small class="text-muted">' . $row["email_participante"] . '</small>
+                    <small class="text-muted">' . $row["telefono_participante"] . '</small>
                 </td>
                 <td>' . $fecha_inscripcion . '</td>
                 <td>
