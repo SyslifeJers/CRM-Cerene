@@ -37,58 +37,42 @@ $opciones_pago = $database->getOpcionesPagoCurso();
           <li class="list-group-item"><strong>Estado:</strong> <?= $curso['activo'] ? 'Activo' : 'Inactivo' ?></li>
         </ul>
         <?php if (!empty($opciones_pago)): ?>
-        <div class="mb-3">
-          <label class="form-label">Opción de Pago</label>
-          <select id="opcionPago" class="form-select" onchange="manejarCambio()">
-            <?php foreach ($opciones_pago as $op): ?>
-              <option 
-                value="<?= $op['id_opcion'] ?>"
-                data-numero="<?= $op['numero_pagos'] ?>" 
-                data-adicional="<?= $op['costo_adicional'] ?>">
-                <?= $op['numero_pagos'] ?> pago<?= $op['numero_pagos'] > 1 ? 's' : '' ?> de <?= $op['tipo'] ?> 
-                (Adicional: $<?= number_format($op['costo_adicional'], 2) ?>) / Nota: <?= htmlspecialchars($op['nota']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+        <h5 class="mt-4">Links por forma de pago</h5>
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Forma de Pago</th>
+                <th>Enlace</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($opciones_pago as $op): ?>
+                <?php
+                  $linkPago = 'https://cursos.clinicacerene.com/Registro.php?clave=' . $curso['clave_curso'] . '-' . $op['id_opcion'];
+                  $desc = $op['numero_pagos'] . ' pago' . ($op['numero_pagos'] > 1 ? 's' : '') .
+                          ' de ' . $op['tipo'] . ' (Adicional: $' . number_format($op['costo_adicional'], 2) . ')';
+                ?>
+                <tr>
+                  <td><?= $desc ?></td>
+                  <td><a href="<?= $linkPago ?>" target="_blank"><?= htmlspecialchars($linkPago) ?></a></td>
+                  <td><button type="button" class="btn btn-sm btn-outline-primary" onclick="copiarLink('<?= $linkPago ?>')">Copiar</button></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
         <?php endif; ?>
 
-
-        <div id="infoPago" class="alert alert-info d-none"></div>
-
-        <button id="btnCompartir" class="btn btn-primary" disabled>Compartir link</button>
-        <a href="index.php" class="btn btn-secondary ms-2">Volver</a>
+        <a href="index.php" class="btn btn-secondary mt-3">Volver</a>
       </div>
     </div>
   </div>
 </div>
 <?php include '../Modulos/Footer.php'; ?>
 <script>
-  const btnCompartir = document.getElementById('btnCompartir');
-const formaPago = document.getElementById('opcionPago');
-
-function manejarCambio() {
-  const select = document.getElementById('opcionPago');
-  const opcionSeleccionada = select.options[select.selectedIndex];
-  
-  const id = select.value;
-  const numeroPagos = opcionSeleccionada.getAttribute('data-numero');
-  const adicional = parseFloat(opcionSeleccionada.getAttribute('data-adicional'));
-
-  actualizarInfo(id, numeroPagos, adicional);
-}
-
-function actualizarInfo(id, numeroPagos, adicional = 0) {
-  const total = <?= (float)$curso['costo'] ?> + adicional;
-  const porPago = total / numeroPagos;
-  infoPago.textContent = `${numeroPagos} pagos de $${porPago.toFixed(2)} (total $${total.toFixed(2)})`;
-  infoPago.classList.remove('d-none');
-  btnCompartir.disabled = false;
-}
-  btnCompartir?.addEventListener('click', function() {
-  const idFp = formaPago.value;
-  if (!idFp) return;
-  const link = 'https://cursos.clinicacerene.com/Registro.php?clave=<?= $curso['clave_curso'] ?>-' + idFp;
-  navigator.clipboard.writeText(link).then(() => alert('Enlace copiado: ' + link));
-});
+  function copiarLink(link) {
+    navigator.clipboard.writeText(link).then(() => alert('Enlace copiado: ' + link));
+  }
 </script>

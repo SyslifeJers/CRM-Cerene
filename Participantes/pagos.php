@@ -127,7 +127,9 @@ $faltante = $inscripcion['costo'] - $total_validado;
                         <td><?= $pago['numero_pago'] ?></td>
                         <td><?= htmlspecialchars($pago['metodo_pago']) ?></td>
                         <td><?= htmlspecialchars($pago['referencia_pago']) ?></td>
-                        <td>$<?= number_format($pago['monto_pagado'], 2) ?></td>
+                        <td>
+                            <input type="number" step="0.01" class="form-control form-control-sm monto-input" data-id="<?= $pago['id_comprobante'] ?>" value="<?= number_format($pago['monto_pagado'], 2, '.', '') ?>">
+                        </td>
                         <td><a href="../comprobantes/<?= htmlspecialchars($pago['comprobante_path']) ?>" target="_blank">Ver</a></td>
                         <td><?= date('d/m/Y', strtotime($pago['fecha_carga'])) ?></td>
                         <td>
@@ -179,6 +181,7 @@ $(document).ready(function () {
     $('.validar-select').change(function () {
         const id = $(this).data('id');
         const val = $(this).val();
+        const monto = $(this).closest('tr').find('.monto-input').val();
 
         if (val == 3) {
             // Si es Rechazado, pedir razón
@@ -204,7 +207,8 @@ $(document).ready(function () {
                         accion: 'actualizar',
                         id_comprobante: id,
                         validado: val,
-                        nota: result.value
+                        nota: result.value,
+                        monto_pagado: monto
                     }, function (res) {
                         if (res.success) {
                             Swal.fire('Éxito', res.message, 'success').then(() => {
@@ -224,7 +228,8 @@ $(document).ready(function () {
             $.post('gestion_comprobante.php', {
                 accion: 'actualizar',
                 id_comprobante: id,
-                validado: val
+                validado: val,
+                monto_pagado: monto
             }, function (res) {
                 if (res.success) {
                     Swal.fire('Éxito', res.message, 'success').then(() => {
