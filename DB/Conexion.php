@@ -424,7 +424,12 @@ class Database
                 } else {
                     // Pago único: mostrar visor modal existente
                     $botonComprobante = $row['comprobante_path']
-                        ? '<button class="btn btn-sm btn-info ver-comprobante" data-id="' . $row['id_inscripcion'] . '" data-archivo="' . $row['comprobante_path'] . '"><i class="fas fa-file-invoice"></i> Ver</button>'
+                        ? '<button class="btn btn-sm btn-info ver-comprobante"'
+                        . ' data-id="' . $row['id_inscripcion'] . '"'
+                        . ' data-archivo="' . $row['comprobante_path'] . '"'
+                        . ' data-monto="' . $row['monto_pagado'] . '">
+                            <i class="fas fa-file-invoice"></i> Ver
+                          </button>'
                         : 'N/A';
                 }
 
