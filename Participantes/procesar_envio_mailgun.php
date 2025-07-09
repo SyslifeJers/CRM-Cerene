@@ -33,7 +33,8 @@ function mostrarMensaje($tipo, $titulo, $mensaje) {
 $asunto = trim($_POST['asunto'] ?? '');
 $contenido = $_POST['contenido'] ?? '';
 $estadosSeleccionados = $_POST['estados'] ?? [];
-$correosPorEstado = json_decode($_POST['correos_json'] ?? '{}', true);
+$tipoMonto = $_POST['tipo_monto'] ?? 'monto_validado';
+$correosPorEstado = json_decode($_POST['correos_json'] ?? '[]', true);
 
 // Validaciones
 if (empty($asunto) || empty($contenido)) {
@@ -61,34 +62,54 @@ $apiKey = getenv('MAILGUN_API_KEY');
 $domain = getenv('MAILGUN_DOMAIN');
 $from = getenv('MAILGUN_FROM');
 
-// Preparar destinatarios
-$destinatarios = implode(',', array_map('trim', $correosPorEstado));
+// Función para enviar correo
+function enviarMailgun($apiKey, $domain, $from, $to, $asunto, $html) {
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => "https://api.mailgun.net/v3/$domain/messages",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_USERPWD => $apiKey,
+        CURLOPT_POSTFIELDS => [
+            'from' => $from,
+            'to' => $to,
+            'subject' => $asunto,
+            'html' => $html
+        ]
+    ]);
+    $response = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+    return [$code, $response ?: $error];
+}
 
-// Enviar correo con cURL
-$ch = curl_init();
-curl_setopt_array($ch, [
-    CURLOPT_URL => "https://api.mailgun.net/v3/$domain/messages",
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST => true,
-    CURLOPT_USERPWD => $apiKey,
-    CURLOPT_POSTFIELDS => [
-        'from' => $from,
-        'to' => $destinatarios,
-        'subject' => $asunto,
-        'html' => $contenido
-    ]
-]);
+// Ver si hay placeholder {monto} para envío personalizado
+$usaMonto = strpos($contenido, '{monto}') !== false;
+$enviados = 0;
 
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$error = curl_error($ch);
-curl_close($ch);
-
-// Manejo de respuesta
-if ($httpCode === 200) {
-    mostrarMensaje('success', 'Éxito', 'Correo enviado a ' . count($correosPorEstado) . ' destinatario(s) exitosamente.');
+if ($usaMonto) {
+    foreach ($correosPorEstado as $dest) {
+        $monto = number_format((float)$dest['monto'], 2);
+        $html = str_replace('{monto}', $monto, $contenido);
+        [$code, $resp] = enviarMailgun($apiKey, $domain, $from, $dest['email'], $asunto, $html);
+        if ($code === 200) {
+            $enviados++;
+        }
+    }
+    if ($enviados > 0) {
+        mostrarMensaje('success', 'Éxito', 'Correo enviado a ' . $enviados . ' destinatario(s) exitosamente.');
+    } else {
+        mostrarMensaje('danger', 'Error', 'No se pudo enviar el correo.');
+    }
 } else {
-    mostrarMensaje('danger', 'Error al enviar', 'No se pudo enviar el correo. Código HTTP: ' . $httpCode . '. Detalles: ' . htmlspecialchars($response ?: $error));
+    $destinatarios = implode(',', array_column($correosPorEstado, 'email'));
+    [$code, $resp] = enviarMailgun($apiKey, $domain, $from, $destinatarios, $asunto, $contenido);
+    if ($code === 200) {
+        mostrarMensaje('success', 'Éxito', 'Correo enviado a ' . count($correosPorEstado) . ' destinatario(s) exitosamente.');
+    } else {
+        mostrarMensaje('danger', 'Error al enviar', 'No se pudo enviar el correo. Código HTTP: ' . $code . '. Detalles: ' . htmlspecialchars($resp));
+    }
 }
 
 include '../Modulos/Footer.php';
