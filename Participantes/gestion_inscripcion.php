@@ -18,12 +18,14 @@ try {
     $id_inscripcion = $data['id_inscripcion'] ?? 0;
     
     if ($accion === 'aprobar') {
-        // Aprobar comprobante
-        $stmt = $database->getConnection()->prepare("UPDATE inscripciones 
-            SET estado = 'pago_validado', 
-                fecha_cambio_estado = CURRENT_TIMESTAMP 
+        // Aprobar comprobante y actualizar monto
+        $monto = isset($data['monto_pagado']) ? (float)$data['monto_pagado'] : null;
+        $stmt = $database->getConnection()->prepare("UPDATE inscripciones
+            SET estado = 'pago_validado',
+                monto_pagado = ?,
+                fecha_cambio_estado = CURRENT_TIMESTAMP
             WHERE id_inscripcion = ?");
-        $stmt->bind_param("i", $id_inscripcion);
+        $stmt->bind_param("di", $monto, $id_inscripcion);
         $stmt->execute();
         
         echo json_encode([

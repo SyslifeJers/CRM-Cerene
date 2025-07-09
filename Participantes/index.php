@@ -94,6 +94,11 @@ $stmtOpc->close();
                     <div id="visorDocumento" class="text-center mb-3" style="min-height: 500px;">
                         <!-- Contenido dinámico -->
                     </div>
+
+                    <div class="mb-3">
+                        <label for="montoDeclarado" class="form-label">Monto declarado</label>
+                        <input type="number" step="0.01" class="form-control" id="montoDeclarado">
+                    </div>
                     
                     <form id="formRechazo" class="d-none">
                         <input type="hidden" name="id_inscripcion" id="idInscripcionRechazo">
@@ -187,9 +192,11 @@ $stmtOpc->close();
         $(".ver-comprobante").click(function() {
             const idInscripcion = $(this).data("id");
             const archivo = $(this).data("archivo");
+            const monto = $(this).data("monto");
             const extension = archivo.split(".").pop().toLowerCase();
             
             $("#idInscripcionRechazo").val(idInscripcion);
+            $("#montoDeclarado").val(monto);
             $("#formRechazo").addClass("d-none");
             $("#btnAprobar, #btnRechazar").show();
             
@@ -235,7 +242,8 @@ $stmtOpc->close();
                         type: "POST",
                         data: {
                             accion: "aprobar",
-                            id_inscripcion: idInscripcion
+                            id_inscripcion: idInscripcion,
+                            monto_pagado: $("#montoDeclarado").val()
                         },
                         success: function(response) {
                             if (response.success) {
