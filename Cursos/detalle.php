@@ -48,6 +48,11 @@ $opciones_pago = $database->getOpcionesPagoCurso();
               </tr>
             </thead>
             <tbody>
+              <tr>
+                <td>Pago único</td>
+                <td><a href="https://cursos.clinicacerene.com/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?>" target="_blank">https://cursos.clinicacerene.com/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?></a></td>
+                <td><button type="button" class="btn btn-sm btn-outline-primary" onclick="copiarLink('https://cursos.clinicacerene.com/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?>')">Copiar</button></td>
+              </tr>
               <?php foreach ($opciones_pago as $op): ?>
                 <?php
                   $linkPago = 'https://cursos.clinicacerene.com/Registro.php?clave=' . $curso['clave_curso'] . '-' . $op['id_opcion'];

@@ -112,7 +112,7 @@ $stmt->close();
         <input type="hidden" name="referencia_pago" value="">
         <div class="mb-3">
             <label>Monto Pagado</label>
-            <input type="number" step="0.01" name="monto_pagado" value="<?= ($inscripcion['costo'] + $inscripcion['costo_adicional']) / $numero_pagos ?>" class="form-control" required>
+            <input type="number" min="1" step="0.01" name="monto_pagado" value="<?= ($inscripcion['costo'] + $inscripcion['costo_adicional']) / $numero_pagos ?>" class="form-control" required>
         </div>
         <div class="mb-3">
             <label>Comprobante (PDF/Imagen)</label>

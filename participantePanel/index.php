@@ -67,7 +67,7 @@ $stmtCedula->close();
                         </span>
                       </td>
                       <td>
-                        <?php if ($row['id_opcion_pago'] && ($row['estado'] == 'registrado' || $row['estado'] == 'Revision de pago')): ?>
+                        <?php if ($row['id_opcion_pago'] && ($row['estado'] == 'registrado' || $row['estado'] == 'pagos programados' || $row['estado'] == 'Revision de pago')): ?>
                           <a href="pagos.php?id=<?= $row['id_inscripcion'] ?>" class="btn btn-sm btn-primary">
                             <i class="fas fa-receipt"></i> Ver pagos
                           </a>

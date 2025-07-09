@@ -18,7 +18,7 @@ $database = new Database();
 $participante_id = $_SESSION['participante_id'];
 
 // Verificar que el participante está inscrito en el curso
-$query = "SELECT c.id_curso, c.nombre_curso, c.costo, i.id_inscripcion, i.estado
+$query = "SELECT c.id_curso, c.nombre_curso, c.costo, i.id_inscripcion, i.estado , i.monto_pagado
           FROM cursos c
           JOIN inscripciones i ON c.id_curso = i.id_curso
           WHERE c.clave_curso = ? AND i.id_participante = ?";
@@ -37,21 +37,29 @@ $id_curso = $curso['id_curso'];
 $id_inscripcion = $curso['id_inscripcion'];
 $costo_curso = $curso['costo'];
 
-// Total pagado con comprobantes validados
-$stmtPago = $database->getConnection()->prepare(
+if ($curso['estado'] == 'pago_validado') {
+    $total_pagado = floatval($curso['monto_pagado']);
+}
+else{
+    // Total pagado con comprobantes validados
+    $stmtPago = $database->getConnection()->prepare(
     "SELECT SUM(monto_pagado) AS total_pagado
        FROM comprobantes_inscripcion
       WHERE validado = 1 AND id_inscripcion = ?"
-);
-$stmtPago->bind_param("i", $id_inscripcion);
-$stmtPago->execute();
-$resPago = $stmtPago->get_result();
-$rowPago = $resPago->fetch_assoc();
-$total_pagado = $rowPago ? floatval($rowPago['total_pagado']) : 0.0;
-$stmtPago->close();
+        );
+        $stmtPago->bind_param("i", $id_inscripcion);
+        $stmtPago->execute();
+        $resPago = $stmtPago->get_result();
+        $rowPago = $resPago->fetch_assoc();
+        $total_pagado = $rowPago ? floatval($rowPago['total_pagado']) : 0.0;
+        $stmtPago->close();
+}
+
+
 
 // Obtener contenido del curso
 $contenido = $database->getContenidoCursoParticipante($id_curso);
+echo $total_pagado;
 ?>
 
 <div class="container mt-4">
@@ -102,7 +110,7 @@ $contenido = $database->getContenidoCursoParticipante($id_curso);
                                     ?>
                                     <?php foreach ($contenido as $item):
                                         $requiere = isset($item['PagoPorce']) ? floatval($item['PagoPorce']) : 0;
-                                        $acceso = $requiere == 0 || $total_pagado >= ($costo_curso * $requiere / 100);
+                                        $acceso = $requiere == 0 || $total_pagado >= $requiere;
                                         if (!$acceso) continue;
                                     ?>
                                         <tr>
@@ -124,7 +132,7 @@ $contenido = $database->getContenidoCursoParticipante($id_curso);
                                             </td>
                                             <td class="align-middle">
                                                 <?php if ($item['tipo_contenido'] === 'enlace' && !empty($item['enlace_url'])): ?>
-                                                    <a href="/<?= htmlspecialchars($item['enlace_url']) ?>"
+                                                    <a href="<?= htmlspecialchars($item['enlace_url']) ?>"
                                                        target="_blank"
                                                        class="btn btn-sm btn-primary">
                                                         <i class="fas fa-external-link-alt"></i> Enlace

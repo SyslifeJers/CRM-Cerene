@@ -382,7 +382,8 @@ class Database
                 p.apellido as apellido_participante,
                 p.email as email_participante,
                 p.telefono as telefono_participante,
-                p.documento
+                p.documento,
+                p.titulo
               FROM inscripciones i
               LEFT JOIN cursos c ON i.id_curso = c.id_curso
               LEFT JOIN participantes p ON i.id_participante = p.id_participante";
@@ -420,10 +421,10 @@ class Database
                 // Botón o enlace de comprobante según la opción de pago
                 if ($row['id_opcion_pago']) {
                     // Múltiples pagos: ir a pantalla de gestión
-                    $botonComprobante = '<a href="pagos.php?id=' . $row['id_inscripcion'] . '" class="btn btn-sm btn-info"><i class="fas fa-file-invoice"></i> Ver</a>';
+                    $botonComprobante = '<a href="pagos.php?id=' . $row['id_inscripcion'] . '" class="btn btn-sm btn-info"><i class="fas fa-file-invoice"></i> Ver pagos programados</a>';
                 } else {
                     // Pago único: mostrar visor modal existente
-                    $botonComprobante = $row['comprobante_path']
+                                       $botonComprobante = $row['comprobante_path']
                         ? '<button class="btn btn-sm btn-info ver-comprobante"'
                         . ' data-id="' . $row['id_inscripcion'] . '"'
                         . ' data-archivo="' . $row['comprobante_path'] . '"'
@@ -442,7 +443,7 @@ class Database
             <tr>
                 <td>' . $row["id_inscripcion"] . '</td>
                 <td>
-                    <strong>' . htmlspecialchars($row["nombre_participante"]) . ' ' . htmlspecialchars($row["apellido_participante"]) . '</strong><br>
+                    <strong>'. htmlspecialchars($row["titulo"]) . ' ' . htmlspecialchars($row["nombre_participante"]) . ' ' . htmlspecialchars($row["apellido_participante"]) . '</strong><br>
                     <small class="text-muted">' . $row["email_participante"] . '</small>
                     <small class="text-muted">' . $row["telefono_participante"] . '</small>
                 </td>
@@ -453,7 +454,16 @@ class Database
                     </span><br>
                     <small>' . $fecha_cambio . '</small>
                 </td>
-                <td>' . ($row["metodo_pago"] ?: 'N/A') . '</td>
+                <td>'
+                . ($row['id_opcion_pago']
+                    ? '<i class="fas fa-calendar-alt text-info"></i> Pagos diferidos'
+                    : (
+                        $row["metodo_pago"]
+                            ? '</i> ' . htmlspecialchars($row["metodo_pago"])
+                            : '<span class="text-muted"><i class="fas fa-ban"></i> N/A</span>'
+                    )
+                ) .
+                '</td>
                 <td class="text-end">' . ($row["monto_pagado"] ? '$' . number_format($row["monto_pagado"], 2) : 'N/A') . '</td>
                 <td class="text-center">' . $botonComprobante . '</td>
                 <td class="text-center">' . $botonDocumento . '</td>
@@ -778,4 +788,4 @@ public function getReunionesZoomParticipante($id_curso) {
     
     return $result->fetch_all(MYSQLI_ASSOC);
 }
-}
+} 
