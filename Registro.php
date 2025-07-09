@@ -245,9 +245,24 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="email" class="form-label">Correo Electrónico*</label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
+                                    <label for="email" class="form-label">Correo Electrónico (solo Gmail)*</label>
+                                    <input type="email" class="form-control" id="email" name="email" required pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$" title="Solo se permiten correos de Gmail">
+                                    <div class="invalid-feedback">
+                                        Solo se permiten correos de Gmail(Para compartir contenido de los cursos).
+                                    </div>
                                 </div>
+                                <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    var emailInput = document.getElementById('email');
+                                    emailInput.addEventListener('input', function() {
+                                        if (emailInput.validity.patternMismatch) {
+                                            emailInput.classList.add('is-invalid');
+                                        } else {
+                                            emailInput.classList.remove('is-invalid');
+                                        }
+                                    });
+                                });
+                                </script>
                                 
                                 <div class="mb-3">
                                     <label for="telefono" class="form-label">Teléfono*</label>
