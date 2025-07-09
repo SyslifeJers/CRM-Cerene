@@ -84,14 +84,22 @@ function enviarMailgun($apiKey, $domain, $from, $to, $asunto, $html) {
     return [$code, $response ?: $error];
 }
 
-// Ver si hay placeholder {monto} para envío personalizado
+// Ver si hay placeholders personalizados
 $usaMonto = strpos($contenido, '{monto}') !== false;
+$usaNombre = strpos($contenido, '{nombre}') !== false || strpos($contenido, '@name') !== false;
 $enviados = 0;
 
-if ($usaMonto) {
+if ($usaMonto || $usaNombre) {
     foreach ($correosPorEstado as $dest) {
-        $monto = number_format((float)$dest['monto'], 2);
-        $html = str_replace('{monto}', $monto, $contenido);
+        $html = $contenido;
+        if ($usaMonto) {
+            $monto = number_format((float)$dest['monto'], 2);
+            $html = str_replace('{monto}', $monto, $html);
+        }
+        if ($usaNombre) {
+            $nombre = $dest['nombre'];
+            $html = str_replace(['{nombre}', '@name'], $nombre, $html);
+        }
         [$code, $resp] = enviarMailgun($apiKey, $domain, $from, $dest['email'], $asunto, $html);
         if ($code === 200) {
             $enviados++;

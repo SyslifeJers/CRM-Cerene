@@ -8,6 +8,7 @@ $id_curso = $_POST['id_curso'] ?? null;
 $correo_estado = [];
 $query = $database->getConnection()->prepare("
     SELECT p.email,
+           CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
            i.estado,
            COALESCE((SELECT SUM(ci.monto_pagado)
                      FROM comprobantes_inscripcion ci
@@ -34,7 +35,7 @@ while ($row = $result->fetch_assoc()) {
     <h3>Redactar correo en HTML</h3>
     <form method="POST" action="procesar_envio_mailgun.php">
         <input type="hidden" name="id_curso" value="<?php echo $id_curso; ?>">
-        <input type="hidden" name="correos" value="<?php echo htmlspecialchars(json_encode($correos)); ?>">
+
 
         <div class="mb-3">
             <label>Asunto:</label>
@@ -70,6 +71,10 @@ while ($row = $result->fetch_assoc()) {
             </select>
         </div>
         <div class="mb-3">
+            <label>Filtrar por monto (<=):</label>
+            <input type="number" step="any" id="filtro_monto" class="form-control" placeholder="Sin filtro">
+        </div>
+        <div class="mb-3">
             <label>Contenido HTML:</label>
             <textarea name="contenido" id="editor" rows="10" class="form-control"></textarea>
         </div>
@@ -97,7 +102,9 @@ while ($row = $result->fetch_assoc()) {
     <tbody>
         <?php
         $query = $database->getConnection()->prepare("
-            SELECT p.email, i.estado,
+            SELECT p.email,
+                   CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
+                   i.estado,
                    COALESCE((SELECT SUM(ci.monto_pagado)
                             FROM comprobantes_inscripcion ci
                             WHERE ci.validado = 1
@@ -150,11 +157,13 @@ while ($row = $result->fetch_assoc()) {
         const contenedor = document.getElementById('correos-seleccionados');
         const inputHidden = document.getElementById('correos-input');
         const montoSelect = document.getElementById('tipo_monto');
+        const filtroMonto = document.getElementById('filtro_monto');
 
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', actualizarCorreos);
         });
         montoSelect.addEventListener('change', actualizarCorreos);
+        filtroMonto.addEventListener('input', actualizarCorreos);
 
         function actualizarCorreos() {
             const seleccionados = Array.from(checkboxes)
@@ -162,9 +171,11 @@ while ($row = $result->fetch_assoc()) {
                 .map(chk => chk.value);
 
             const tipoMonto = montoSelect.value;
+            const limite = parseFloat(filtroMonto.value);
             const filtrados = correosPorEstado
                 .filter(item => seleccionados.includes(item.estado))
-                .map(item => ({email: item.email, monto: item[tipoMonto]}));
+                .filter(item => isNaN(limite) || parseFloat(item[tipoMonto]) <= limite)
+                .map(item => ({email: item.email, monto: item[tipoMonto], nombre: item.nombre_completo}));
 
             // Mostrar en el contenedor
             contenedor.innerHTML = filtrados.length > 0
@@ -183,5 +194,4 @@ while ($row = $result->fetch_assoc()) {
     });
 </script>
 <script>
-    const correosPorEstado = <?php echo json_encode($correo_estado); ?>;
-</script><?php include '../Modulos/Footer.php'; ?>
+    const correosPorEstado = <?php echo json_encode($correo_estado); ?>;</script><?php include '../Modulos/Footer.php'; ?>
