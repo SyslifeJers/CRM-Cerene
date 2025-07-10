@@ -33,7 +33,6 @@ function mostrarMensaje($tipo, $titulo, $mensaje) {
 $asunto = trim($_POST['asunto'] ?? '');
 $contenido = $_POST['contenido'] ?? '';
 $estadosSeleccionados = $_POST['estados'] ?? [];
-$tipoMonto = $_POST['tipo_monto'] ?? 'monto_validado';
 $correosPorEstado = json_decode($_POST['correos_json'] ?? '[]', true);
 
 // Validaciones
@@ -85,17 +84,12 @@ function enviarMailgun($apiKey, $domain, $from, $to, $asunto, $html) {
 }
 
 // Ver si hay placeholders personalizados
-$usaMonto = strpos($contenido, '{monto}') !== false;
 $usaNombre = strpos($contenido, '{nombre}') !== false || strpos($contenido, '@name') !== false;
 $enviados = 0;
 
-if ($usaMonto || $usaNombre) {
+if ($usaNombre) {
     foreach ($correosPorEstado as $dest) {
         $html = $contenido;
-        if ($usaMonto) {
-            $monto = number_format((float)$dest['monto'], 2);
-            $html = str_replace('{monto}', $monto, $html);
-        }
         if ($usaNombre) {
             $nombre = $dest['nombre'];
             $html = str_replace(['{nombre}', '@name'], $nombre, $html);

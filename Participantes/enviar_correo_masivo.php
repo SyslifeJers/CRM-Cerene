@@ -10,11 +10,10 @@ $query = $database->getConnection()->prepare("
     SELECT p.email,
            CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
            i.estado,
-           COALESCE((SELECT SUM(ci.monto_pagado)
+           COALESCE((SELECT SUM(IFNULL(ci.monto_pagado, 0))
                      FROM comprobantes_inscripcion ci
                      WHERE ci.validado = 1
-                       AND ci.id_inscripcion = i.id_inscripcion), i.monto_pagado) AS monto_validado,
-           (c.costo + IFNULL(op.costo_adicional,0)) AS monto_participacion
+                       AND ci.id_inscripcion = i.id_inscripcion), IFNULL(i.monto_pagado, 0)) AS monto_validado
       FROM inscripciones i
       JOIN participantes p ON i.id_participante = p.id_participante
       JOIN cursos c ON i.id_curso = c.id_curso
@@ -26,9 +25,6 @@ $query = $database->getConnection()->prepare("
 $query->bind_param("i", $id_curso);
 $query->execute();
 $result = $query->get_result();
-while ($row = $result->fetch_assoc()) {
-    $correo_estado[] = $row;
-}
 ?>
 
 <div class="container mt-4">
@@ -64,13 +60,6 @@ while ($row = $result->fetch_assoc()) {
             ?>
         </div>
         <div class="mb-3">
-            <label>Monto a usar en {monto}:</label>
-            <select id="tipo_monto" name="tipo_monto" class="form-select">
-                <option value="monto_validado">Suma comprobantes validados</option>
-                <option value="monto_participacion">Monto participación</option>
-            </select>
-        </div>
-        <div class="mb-3">
             <label>Filtrar por monto (<=):</label>
             <input type="number" step="any" id="filtro_monto" class="form-control" placeholder="Sin filtro">
         </div>
@@ -96,34 +85,13 @@ while ($row = $result->fetch_assoc()) {
             <th>Email</th>
             <th>Estatus</th>
             <th>Monto validado</th>
-            <th>Monto participación</th>
         </tr>
     </thead>
     <tbody>
         <?php
-        $query = $database->getConnection()->prepare("
-            SELECT p.email,
-                   CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
-                   i.estado,
-                   COALESCE((SELECT SUM(ci.monto_pagado)
-                            FROM comprobantes_inscripcion ci
-                            WHERE ci.validado = 1
-                              AND ci.id_inscripcion = i.id_inscripcion), i.monto_pagado) AS monto_validado,
-                   (c.costo + IFNULL(op.costo_adicional,0)) AS monto_participacion
-              FROM inscripciones i
-              JOIN participantes p ON i.id_participante = p.id_participante
-              JOIN cursos c ON i.id_curso = c.id_curso
-         LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
-             WHERE i.id_curso = ?
-               AND p.email IS NOT NULL
-               AND p.email <> ''
-        ");
-        $query->bind_param("i", $id_curso);
-        $query->execute();
-        $result = $query->get_result();
-
         $num = 1;
         while ($row = $result->fetch_assoc()) {
+            $correo_estado[] = $row;
             echo "<tr>";
             echo "<td>{$num}</td>";
             echo "<td>" . htmlspecialchars($row['email']) . "</td>";
@@ -141,8 +109,11 @@ while ($row = $result->fetch_assoc()) {
             $estadoTexto = ucfirst(str_replace('_', ' ', $estado));
 
             echo "<td><span class='badge bg-{$badgeColor}'>{$estadoTexto}</span></td>";
-            echo "<td>$" . number_format($row['monto_validado'], 2) . "</td>";
-            echo "<td>$" . number_format($row['monto_participacion'], 2) . "</td>";
+            if ($row['monto_validado'] === null) {
+                echo "<td>$0.00</td>";
+            } else {
+                echo "<td>$" . number_format($row['monto_validado'], 2) . "</td>";
+            }
             echo "</tr>";
             $num++;
         }
@@ -156,13 +127,11 @@ while ($row = $result->fetch_assoc()) {
         const checkboxes = document.querySelectorAll('input[name="estados[]"]');
         const contenedor = document.getElementById('correos-seleccionados');
         const inputHidden = document.getElementById('correos-input');
-        const montoSelect = document.getElementById('tipo_monto');
         const filtroMonto = document.getElementById('filtro_monto');
 
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', actualizarCorreos);
         });
-        montoSelect.addEventListener('change', actualizarCorreos);
         filtroMonto.addEventListener('input', actualizarCorreos);
 
         function actualizarCorreos() {
@@ -170,20 +139,19 @@ while ($row = $result->fetch_assoc()) {
                 .filter(chk => chk.checked)
                 .map(chk => chk.value);
 
-            const tipoMonto = montoSelect.value;
             const limite = parseFloat(filtroMonto.value);
             const filtrados = correosPorEstado
                 .filter(item => seleccionados.includes(item.estado))
-                .filter(item => isNaN(limite) || parseFloat(item[tipoMonto]) <= limite)
-                .map(item => ({email: item.email, monto: item[tipoMonto], nombre: item.nombre_completo}));
+                .filter(item => isNaN(limite) || parseFloat(item.monto_validado) <= limite);
+            const destinatarios = filtrados.map(item => ({email: item.email, nombre: item.nombre_completo}));
 
             // Mostrar en el contenedor
             contenedor.innerHTML = filtrados.length > 0
-                ? filtrados.map(c => `<div>${c.email} - $${parseFloat(c.monto).toFixed(2)}</div>`).join('')
+                ? filtrados.map(c => `<div>${c.email} - $${parseFloat(c.monto_validado).toFixed(2)}</div>`).join('')
                 : '<em>No hay correos seleccionados</em>';
 
             // Actualizar el input hidden
-            inputHidden.value = JSON.stringify(filtrados);
+            inputHidden.value = JSON.stringify(destinatarios);
         }
     });
     tinymce.init({
