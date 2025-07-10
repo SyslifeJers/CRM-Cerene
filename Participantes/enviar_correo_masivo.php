@@ -7,26 +7,31 @@ $id_curso = $_POST['id_curso'] ?? null;
 
 $correo_estado = [];
 $query = $database->getConnection()->prepare("
-    SELECT participantes.email, inscripciones.estado 
-    FROM inscripciones
-    INNER JOIN participantes ON inscripciones.id_participante = participantes.id_participante
-    WHERE inscripciones.id_curso = ? 
-      AND participantes.email IS NOT NULL 
-      AND participantes.email <> ''
+    SELECT p.email,
+           CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
+           i.estado,
+           COALESCE((SELECT SUM(IFNULL(ci.monto_pagado, 0))
+                     FROM comprobantes_inscripcion ci
+                     WHERE ci.validado = 1
+                       AND ci.id_inscripcion = i.id_inscripcion), IFNULL(i.monto_pagado, 0)) AS monto_validado
+      FROM inscripciones i
+      JOIN participantes p ON i.id_participante = p.id_participante
+      JOIN cursos c ON i.id_curso = c.id_curso
+ LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
+     WHERE i.id_curso = ?
+       AND p.email IS NOT NULL
+       AND p.email <> ''
 ");
 $query->bind_param("i", $id_curso);
 $query->execute();
 $result = $query->get_result();
-while ($row = $result->fetch_assoc()) {
-    $correo_estado[] = $row;
-}
 ?>
 
 <div class="container mt-4">
     <h3>Redactar correo en HTML</h3>
     <form method="POST" action="procesar_envio_mailgun.php">
         <input type="hidden" name="id_curso" value="<?php echo $id_curso; ?>">
-        <input type="hidden" name="correos" value="<?php echo htmlspecialchars(json_encode($correos)); ?>">
+
 
         <div class="mb-3">
             <label>Asunto:</label>
@@ -35,15 +40,28 @@ while ($row = $result->fetch_assoc()) {
         <div class="mb-3">
             <label>Selecciona a qué estados enviar:</label><br>
             <?php
-            
-            $estados_disponibles = ['registrado', 'comprobante_enviado', 'pago_validado', 'rechazado'];
+
+            $estados_disponibles = [
+                'registrado',
+                'pendiente_pago',
+                'comprobante_enviado',
+                'Revision de pago',
+                'pagos programados',
+                'pago_validado',
+                'rechazado'
+            ];
             foreach ($estados_disponibles as $estado) {
+                $id = preg_replace('/\s+/', '_', $estado);
                 echo '<div class="form-check form-check-inline">';
-                echo '<input class="form-check-input" type="checkbox" name="estados[]" value="' . $estado . '" id="estado_' . $estado . '">';
-                echo '<label class="form-check-label" for="estado_' . $estado . '">' . ucfirst(str_replace('_', ' ', $estado)) . '</label>';
+                echo '<input class="form-check-input" type="checkbox" name="estados[]" value="' . $estado . '" id="estado_' . $id . '">';
+                echo '<label class="form-check-label" for="estado_' . $id . '">' . ucfirst(str_replace('_', ' ', $estado)) . '</label>';
                 echo '</div>';
             }
             ?>
+        </div>
+        <div class="mb-3">
+            <label>Filtrar por monto (<=):</label>
+            <input type="number" step="any" id="filtro_monto" class="form-control" placeholder="Sin filtro">
         </div>
         <div class="mb-3">
             <label>Contenido HTML:</label>
@@ -66,31 +84,24 @@ while ($row = $result->fetch_assoc()) {
             <th>#</th>
             <th>Email</th>
             <th>Estatus</th>
+            <th>Monto validado</th>
         </tr>
     </thead>
     <tbody>
         <?php
-        $query = $database->getConnection()->prepare("
-            SELECT participantes.email, inscripciones.estado 
-            FROM inscripciones
-            INNER JOIN participantes ON inscripciones.id_participante = participantes.id_participante
-            WHERE inscripciones.id_curso = ? 
-              AND participantes.email IS NOT NULL 
-              AND participantes.email <> ''
-        ");
-        $query->bind_param("i", $id_curso);
-        $query->execute();
-        $result = $query->get_result();
-
         $num = 1;
         while ($row = $result->fetch_assoc()) {
+            $correo_estado[] = $row;
             echo "<tr>";
             echo "<td>{$num}</td>";
             echo "<td>" . htmlspecialchars($row['email']) . "</td>";
             $estado = $row['estado'];
             $colores = [
                 'registrado' => 'secondary',
+                'pendiente_pago' => 'warning',
                 'comprobante_enviado' => 'info',
+                'Revision de pago' => 'primary',
+                'pagos programados' => 'info',
                 'pago_validado' => 'success',
                 'rechazado' => 'danger'
             ];
@@ -98,6 +109,11 @@ while ($row = $result->fetch_assoc()) {
             $estadoTexto = ucfirst(str_replace('_', ' ', $estado));
 
             echo "<td><span class='badge bg-{$badgeColor}'>{$estadoTexto}</span></td>";
+            if ($row['monto_validado'] === null) {
+                echo "<td>$0.00</td>";
+            } else {
+                echo "<td>$" . number_format($row['monto_validado'], 2) . "</td>";
+            }
             echo "</tr>";
             $num++;
         }
@@ -111,27 +127,31 @@ while ($row = $result->fetch_assoc()) {
         const checkboxes = document.querySelectorAll('input[name="estados[]"]');
         const contenedor = document.getElementById('correos-seleccionados');
         const inputHidden = document.getElementById('correos-input');
+        const filtroMonto = document.getElementById('filtro_monto');
 
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', actualizarCorreos);
         });
+        filtroMonto.addEventListener('input', actualizarCorreos);
 
         function actualizarCorreos() {
             const seleccionados = Array.from(checkboxes)
                 .filter(chk => chk.checked)
                 .map(chk => chk.value);
 
+            const limite = parseFloat(filtroMonto.value);
             const filtrados = correosPorEstado
                 .filter(item => seleccionados.includes(item.estado))
-                .map(item => item.email);
+                .filter(item => isNaN(limite) || parseFloat(item.monto_validado) <= limite);
+            const destinatarios = filtrados.map(item => ({email: item.email, nombre: item.nombre_completo}));
 
             // Mostrar en el contenedor
-            contenedor.innerHTML = filtrados.length > 0 
-                ? filtrados.map(c => `<div>${c}</div>`).join('') 
+            contenedor.innerHTML = filtrados.length > 0
+                ? filtrados.map(c => `<div>${c.email} - $${parseFloat(c.monto_validado).toFixed(2)}</div>`).join('')
                 : '<em>No hay correos seleccionados</em>';
 
             // Actualizar el input hidden
-            inputHidden.value = JSON.stringify(filtrados);
+            inputHidden.value = JSON.stringify(destinatarios);
         }
     });
     tinymce.init({
@@ -142,6 +162,4 @@ while ($row = $result->fetch_assoc()) {
     });
 </script>
 <script>
-    const correosPorEstado = <?php echo json_encode($correo_estado); ?>;
-</script>
-<?php include '../Modulos/Footer.php'; ?>
+    const correosPorEstado = <?php echo json_encode($correo_estado); ?>;</script><?php include '../Modulos/Footer.php'; ?>
