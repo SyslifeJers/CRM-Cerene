@@ -3,7 +3,7 @@ session_start();
 header('Content-Type: application/json');
 require_once '../../DB/Conexion.php';
 
-if (!isset($_SESSION['participante_id'])) {
+if (!isset($_SESSION['idAdmin'])) {
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit();
 }

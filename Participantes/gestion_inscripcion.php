@@ -65,22 +65,50 @@ try {
             throw $e;
         }
     } elseif ($accion === 'cambiar_estado') {
-        // Cambiar el estado de la inscripción
-        $nuevo_estado = $data['estado'] ?? '';
-        if (empty($nuevo_estado)) {
-            throw new Exception('El estado es requerido');
-        }
-        $stmt = $database->getConnection()->prepare("UPDATE inscripciones
-            SET estado = ?,
-                fecha_cambio_estado = CURRENT_TIMESTAMP
-            WHERE id_inscripcion = ?");
-        $stmt->bind_param("si", $nuevo_estado, $id_inscripcion);
-        $stmt->execute();
+$nuevo_estado = $data['estado'] ?? '';
+if (empty($nuevo_estado)) {
+    throw new Exception('El estado es requerido');
+}
 
+$conn = $database->getConnection();
+
+// 1. Obtener estado actual
+$sqlEstadoActual = "SELECT estado FROM inscripciones WHERE id_inscripcion = ?";
+$stmtEstado = $conn->prepare($sqlEstadoActual);
+$stmtEstado->bind_param("i", $id_inscripcion);
+$stmtEstado->execute();
+$resultEstado = $stmtEstado->get_result();
+$estado_actual = $resultEstado->fetch_assoc()['estado'] ?? null;
+
+// 2. Actualizar el estado si es diferente
+$stmt = $conn->prepare("UPDATE inscripciones
+    SET estado = ?, fecha_cambio_estado = CURRENT_TIMESTAMP
+    WHERE id_inscripcion = ?");
+$stmt->bind_param("si", $nuevo_estado, $id_inscripcion);
+$stmt->execute();
+
+// 3. Si cambia de 'pagos_programados' a 'pago_validado', sumar y actualizar
+if ($estado_actual === 'pagos_programados' && $nuevo_estado === 'pago_validado') {
+    $sqlSuma = "SELECT SUM(monto_pagado) AS total_pagado 
+                FROM comprobantes_inscripcion 
+                WHERE validado = 1 AND id_inscripcion = ?";
+    $stmtSuma = $conn->prepare($sqlSuma);
+    $stmtSuma->bind_param("i", $id_inscripcion);
+    $stmtSuma->execute();
+    $resultado = $stmtSuma->get_result();
+    $fila = $resultado->fetch_assoc();
+    $total_pagado = $fila['total_pagado'] ?? 0;
+
+    $sqlUpdateMonto = "UPDATE inscripciones SET monto_pagado = ? WHERE id_inscripcion = ?";
+    $stmtUpdate = $conn->prepare($sqlUpdateMonto);
+    $stmtUpdate->bind_param("di", $total_pagado, $id_inscripcion);
+    $stmtUpdate->execute();
+}
         echo json_encode([
             'success' => true,
-            'message' => 'Estado de inscripción actualizado correctamente'
+            'message' => 'Estado actualizado correctamente'
         ]);
+        
     } elseif ($accion === 'asignar_opcion_pago') {
         $id_opcion = $data['id_opcion'] ?? 0;
         if (!$id_opcion) {
@@ -97,6 +125,16 @@ try {
         echo json_encode([
             'success' => true,
             'message' => 'Opción de pago asignada'
+        ]);
+    } elseif ($accion === 'guardar_nota') {
+        $nota = isset($data['nota']) ? floatval($data['nota']) : null;
+        $stmt = $database->getConnection()->prepare("UPDATE inscripciones SET nota = ? WHERE id_inscripcion = ?");
+        $stmt->bind_param("di", $nota, $id_inscripcion);
+        $stmt->execute();
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Nota actualizada'
         ]);
     } else {
         throw new Exception('Acción no válida');

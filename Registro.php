@@ -275,7 +275,7 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
                                 </div>
 
                                 <div class="mb-3 d-none" id="otroTituloDiv">
-                                    <label for="otro_titulo" class="form-label">Otro*</label>
+                                    <label for="otro_titulo" class="form-label">Otro* (Se mostrara en el cerfitcado del curso)</label>
                                     <input type="text" class="form-control" id="otro_titulo" name="otro_titulo">
                                 </div>
 

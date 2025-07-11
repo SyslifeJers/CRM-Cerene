@@ -8,7 +8,7 @@ $id_curso = $_POST['id_curso'] ?? null;
 $correo_estado = [];
 $query = $database->getConnection()->prepare("
     SELECT p.email,
-           CONCAT(p.nombre, ' ', p.apellido) AS nombre_completo,
+           CONCAT(p.titulo, ' ', p.nombre, ' ', p.apellido) AS nombre_completo,
            i.estado,
            COALESCE((SELECT SUM(IFNULL(ci.monto_pagado, 0))
                      FROM comprobantes_inscripcion ci
@@ -83,6 +83,7 @@ $result = $query->get_result();
         <tr>
             <th>#</th>
             <th>Email</th>
+            <th>Nombre</th>
             <th>Estatus</th>
             <th>Monto validado</th>
         </tr>
@@ -95,6 +96,7 @@ $result = $query->get_result();
             echo "<tr>";
             echo "<td>{$num}</td>";
             echo "<td>" . htmlspecialchars($row['email']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['nombre_completo']) . "</td>";
             $estado = $row['estado'];
             $colores = [
                 'registrado' => 'secondary',

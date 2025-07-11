@@ -163,6 +163,29 @@ $stmtOpc->close();
         </div>
     </div>
 
+    <!-- Modal Nota -->
+    <div class="modal fade" id="modalNota" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Nota</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="notaId">
+                    <div class="mb-3">
+                        <label for="notaInput" class="form-label">Nota</label>
+                        <input type="number" step="0.01" class="form-control" id="notaInput">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="guardarNota">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     $(document).ready(function() {
         $('.asignar-opcion').click(function() {
@@ -321,6 +344,34 @@ $stmtOpc->close();
             $("#btnAprobar, #btnRechazar").hide();
             $("#modalComprobante").modal("show");
         });
+
+        $('.nota-btn').click(function () {
+            $('#notaId').val($(this).data('id'));
+            $('#notaInput').val($(this).data('nota'));
+            $('#modalNota').modal('show');
+        });
+
+        $('#guardarNota').click(function () {
+            $.ajax({
+                url: 'gestion_inscripcion.php',
+                type: 'POST',
+                data: {
+                    accion: 'guardar_nota',
+                    id_inscripcion: $('#notaId').val(),
+                    nota: $('#notaInput').val()
+                },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire('Éxito', res.message, 'success');
+                        $('#modalNota').modal('hide');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                }
+            });
+        });
     });
     
     function cambiarEstadoInscripcion(id, estado) {
@@ -355,4 +406,10 @@ $stmtOpc->close();
             }
         });
     }
+  new DataTable('#inscripcionesTable', {
+    pageLength: 50,
+    language: {
+      url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+    }
+  });
     </script>

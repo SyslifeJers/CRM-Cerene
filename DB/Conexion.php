@@ -352,7 +352,7 @@ class Database
         <table id="inscripcionesTable" class="table table-bordered table-hover">
             <thead class="thead-dark">
                 <tr>
-                    <th>ID Inscripción</th>
+                    <th>ID</th>
                     <th>Participante</th>
                     <th>Fecha Inscripción</th>
                     <th>Estado</th>
@@ -374,6 +374,7 @@ class Database
                 i.estado,
                 i.metodo_pago,
                 i.monto_pagado,
+                i.nota,
                 i.comprobante_path,
                 i.fecha_inscripcion,
                 i.fecha_cambio_estado,
@@ -421,7 +422,19 @@ class Database
                 // Botón o enlace de comprobante según la opción de pago
                 if ($row['id_opcion_pago']) {
                     // Múltiples pagos: ir a pantalla de gestión
-                    $botonComprobante = '<a href="pagos.php?id=' . $row['id_inscripcion'] . '" class="btn btn-sm btn-info"><i class="fas fa-file-invoice"></i> Ver pagos programados</a>';
+                                        $pendientes = 0;
+                    $pendStmt = $this->conn->prepare("SELECT COUNT(*) AS cnt FROM comprobantes_inscripcion WHERE id_inscripcion = ? AND validado = 0");
+                    $pendStmt->bind_param("i", $row['id_inscripcion']);
+                    if ($pendStmt->execute()) {
+                        $resPend = $pendStmt->get_result();
+                        if ($pendRow = $resPend->fetch_assoc()) {
+                            $pendientes = (int) $pendRow['cnt'];
+                        }
+                    }
+                    $pendStmt->close();
+
+                    $badgePendiente = $pendientes > 0 ? ' <span class="text-warning" title="Pagos pendientes por validar"><i class="fas fa-exclamation-circle"></i></span>'. $pendientes .' Revisar' : '';
+                    $botonComprobante = $badgePendiente .'<a href="pagos.php?id=' . $row['id_inscripcion'] . '" class="btn btn-sm btn-info"><i class="fas fa-file-invoice"></i> Ver pagos programados</a>';
                 } else {
                     // Pago único: mostrar visor modal existente
                                        $botonComprobante = $row['comprobante_path']
@@ -471,6 +484,9 @@ class Database
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
                             <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-info nota-btn" data-id="' . $row['id_inscripcion'] . '" data-nota="' . $row['nota'] . '" title="Nota">
+                            <i class="fas fa-pen"></i>
                         </button>';
 
                 if (!$row['id_opcion_pago']) {
