@@ -44,7 +44,7 @@ $stmtOpc->close();
         <i class="fas fa-envelope"></i> Enviar correo a todos los inscritos
     </button>
     </form>
-    <form method="POST" action="exportar_csv.php" class="mb-3">
+    <form method="POST" action="exportar_csv.php" class="mb-3 me-3">
         <input type="hidden" name="id_curso" value="<?php echo $id_curso; ?>">
         <div class="input-group">
             <input type="text" name="prefijo" id="prefijo" class="form-control" placeholder="Prefijo">
@@ -54,6 +54,9 @@ $stmtOpc->close();
         </div>
         <label for="prefijo" class="form-label mt-1">Ejemplo: 1-002-@id</label>
     </form>
+    <a href="exportar_csv.php?id_curso=<?php echo $id_curso; ?>" class="btn btn-secondary mb-3">
+        <i class="fas fa-download"></i> Descargar reporte CSV
+    </a>
   <div class="col-md-12">
     <div class="card">
       <div class="card-header">
