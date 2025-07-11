@@ -374,6 +374,7 @@ class Database
                 i.estado,
                 i.metodo_pago,
                 i.monto_pagado,
+                i.nota,
                 i.comprobante_path,
                 i.fecha_inscripcion,
                 i.fecha_cambio_estado,
@@ -483,6 +484,9 @@ class Database
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
                             <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-info nota-btn" data-id="' . $row['id_inscripcion'] . '" data-nota="' . $row['nota'] . '" title="Nota">
+                            <i class="fas fa-pen"></i>
                         </button>';
 
                 if (!$row['id_opcion_pago']) {

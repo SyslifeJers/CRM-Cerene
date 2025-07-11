@@ -126,6 +126,16 @@ if ($estado_actual === 'pagos_programados' && $nuevo_estado === 'pago_validado')
             'success' => true,
             'message' => 'Opción de pago asignada'
         ]);
+    } elseif ($accion === 'guardar_nota') {
+        $nota = isset($data['nota']) ? floatval($data['nota']) : null;
+        $stmt = $database->getConnection()->prepare("UPDATE inscripciones SET nota = ? WHERE id_inscripcion = ?");
+        $stmt->bind_param("di", $nota, $id_inscripcion);
+        $stmt->execute();
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Nota actualizada'
+        ]);
     } else {
         throw new Exception('Acción no válida');
     }
