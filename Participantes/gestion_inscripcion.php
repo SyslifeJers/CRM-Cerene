@@ -127,9 +127,9 @@ if ($estado_actual === 'pagos_programados' && $nuevo_estado === 'pago_validado')
             'message' => 'Opción de pago asignada'
         ]);
     } elseif ($accion === 'guardar_nota') {
-        $nota = isset($data['nota']) ? floatval($data['nota']) : null;
+        $nota = isset($data['nota']) ? $data['nota'] : null;
         $stmt = $database->getConnection()->prepare("UPDATE inscripciones SET nota = ? WHERE id_inscripcion = ?");
-        $stmt->bind_param("di", $nota, $id_inscripcion);
+        $stmt->bind_param("si", $nota, $id_inscripcion);
         $stmt->execute();
 
         echo json_encode([

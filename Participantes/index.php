@@ -175,7 +175,7 @@ $stmtOpc->close();
                     <input type="hidden" id="notaId">
                     <div class="mb-3">
                         <label for="notaInput" class="form-label">Nota</label>
-                        <input type="number" step="0.01" class="form-control" id="notaInput">
+                        <input type="text" class="form-control" id="notaInput">
                     </div>
                 </div>
                 <div class="modal-footer">
