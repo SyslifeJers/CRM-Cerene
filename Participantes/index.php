@@ -415,4 +415,13 @@ $stmtOpc->close();
       url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
     }
   });
+
+  $('#modalComprobante, #modalOpcionPago, #modalNota').on('hide.bs.modal', function () {
+    if (this.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
+    this.setAttribute('inert', '');
+  }).on('show.bs.modal', function () {
+    this.removeAttribute('inert');
+  });
     </script>
