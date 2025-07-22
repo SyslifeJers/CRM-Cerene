@@ -117,16 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_boletin'])) {
                     date_default_timezone_set('America/Mexico_City');
                     $hoy = date('Y-m-d');
                     echo "<p class='text-muted'>Fecha actual: $hoy</p>";
-                    
-                    // Mostrar tabla de todos los participantes sin repetir
-                    $query = $database->getConnection()->query("
-                        SELECT DISTINCT id_participante, nombre, apellido, email, telefono, fecha_registro
-                        FROM participantes
-                        ORDER BY fecha_registro DESC
-                    ");
-                    
-                    if ($query->num_rows > 0) {
-                        echo '<table class="table table-striped">
+                        echo '<table id="participantesTable" class="table table-striped">
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -134,24 +125,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_boletin'])) {
                                     <th>Email</th>
                                     <th>Teléfono</th>
                                     <th>Fecha Registro</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>';
-                        
-                        while ($row = $query->fetch_assoc()) {
-                            echo '<tr>
-                                <td>'.$row['id_participante'].'</td>
-                                <td>'.htmlspecialchars($row['nombre']).' '.htmlspecialchars($row['apellido']).'</td>
-                                <td>'.htmlspecialchars($row['email']).'</td>
-                                <td>'.htmlspecialchars($row['telefono']).'</td>
-                                <td>'.$row['fecha_registro'].'</td>
-                            </tr>';
-                        }
-                        
-                        echo '</tbody></table>';
-                    } else {
-                        echo '<div class="alert alert-info">No hay participantes registrados</div>';
-                    }
+                        </table>';
                     ?>
                 </div>
             </div>
@@ -248,6 +225,41 @@ document.getElementById('seleccionarTodos').addEventListener('change', function(
     checkboxes.forEach(function(checkbox) {
         checkbox.checked = event.target.checked;
     });
+});
+
+$(document).on('click', '.reset-pass-btn', function() {
+    var id = $(this).data('id');
+    Swal.fire({
+        title: '¿Restablecer contraseña?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, restablecer',
+        cancelButtonText: 'Cancelar'
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            $.post('restablecer_pass.php', {id: id}, function(res) {
+                if (res.success) {
+                    Swal.fire('Nueva contraseña', 'La nueva contraseña es: <strong>' + res.pass + '</strong>', 'success');
+                } else {
+                    Swal.fire('Error', res.message, 'error');
+                }
+            }, 'json').fail(function() {
+                Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+            });
+        }
+    });
+});
+
+new DataTable('#participantesTable', {
+    serverSide: true,
+    ajax: {
+        url: 'participantes_data.php',
+        type: 'POST'
+    },
+    pageLength: 50,
+    language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+    }
 });
 </script>
 
