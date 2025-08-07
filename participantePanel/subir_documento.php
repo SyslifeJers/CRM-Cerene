@@ -17,41 +17,50 @@ try {
         throw new Exception('No se envió archivo');
     }
 
-    $target_dir = '../documentos/';
-    $nombre_archivo = uniqid() . '_' . basename($_FILES['documento']['name']);
-    $target_file = $target_dir . $nombre_archivo;
+   $target_dir = '../documentos/';
 
-    $ext = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
-    if (!in_array($ext, ['pdf','jpg','jpeg','png'])) {
-        throw new Exception('Formato no permitido');
-    }
-    if ($_FILES['documento']['size'] > 2097152) {
-        throw new Exception('El archivo supera 2MB');
-    }
+// Obtener extensión
+$ext = strtolower(pathinfo($_FILES['documento']['name'], PATHINFO_EXTENSION));
 
-    $stmt = $conn->prepare('SELECT documento FROM participantes WHERE id_participante = ?');
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $stmt->bind_result($docActual);
-    $stmt->fetch();
-    $stmt->close();
+// Validar formato
+if (!in_array($ext, ['pdf','jpg','jpeg','png'])) {
+    throw new Exception('Formato no permitido');
+}
+if ($_FILES['documento']['size'] > 2097152) {
+    throw new Exception('El archivo supera 2MB');
+}
 
-    if (!move_uploaded_file($_FILES['documento']['tmp_name'], $target_file)) {
-        throw new Exception('Error al guardar archivo');
-    }
+// Nombre final del archivo
+$nombre_archivo = 'certificado_' . $id . '.' . $ext;
+$target_file = $target_dir . $nombre_archivo;
 
-    if ($docActual) {
-        @unlink($target_dir . $docActual);
-    }
+// Buscar documento actual
+$stmt = $conn->prepare('SELECT documento FROM participantes WHERE id_participante = ?');
+$stmt->bind_param('i', $id);
+$stmt->execute();
+$stmt->bind_result($docActual);
+$stmt->fetch();
+$stmt->close();
 
-    $stmt = $conn->prepare('UPDATE participantes SET documento = ? WHERE id_participante = ?');
-    $stmt->bind_param('si', $nombre_archivo, $id);
-    if (!$stmt->execute()) {
-        @unlink($target_file);
-        throw new Exception('Error al actualizar registro');
-    }
+// Subir archivo
+if (!move_uploaded_file($_FILES['documento']['tmp_name'], $target_file)) {
+    throw new Exception('Error al guardar archivo');
+}
 
-    echo json_encode(['success' => true, 'message' => 'Documento cargado correctamente']);
+// Borrar anterior si existe y no es el mismo nombre
+if ($docActual && $docActual !== $nombre_archivo) {
+    @unlink($target_dir . $docActual);
+}
+
+// Actualizar base de datos
+$stmt = $conn->prepare('UPDATE participantes SET documento = ? WHERE id_participante = ?');
+$stmt->bind_param('si', $nombre_archivo, $id);
+if (!$stmt->execute()) {
+    @unlink($target_file);
+    throw new Exception('Error al actualizar registro');
+}
+
+echo json_encode(['success' => true, 'message' => 'Documento cargado correctamente']);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 } finally {

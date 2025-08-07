@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_boletin'])) {
         <div class="card">
             <div class="card-header">
                 <h4 class="card-title">Todos los participantes</h4>
-<button class="btn btn-primary float-right" id="abrirModal">
+<button class="btn btn-primary float-right" id="abrirModal" hidden>
     <i class="fas fa-paper-plane"></i> Enviar boletín masivo
 </button>
             </div>
@@ -117,7 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_boletin'])) {
                     date_default_timezone_set('America/Mexico_City');
                     $hoy = date('Y-m-d');
                     echo "<p class='text-muted'>Fecha actual: $hoy</p>";
-                        echo '<table id="participantesTable" class="table table-striped">
+                       ?>
+                        <table id="participantesTable" class="table table-striped">
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -128,8 +129,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_boletin'])) {
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                        </table>';
-                    ?>
+                        </table>
+                 
                 </div>
             </div>
         </div>
@@ -212,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_boletin'])) {
         </div>
     </div>
 </div>
-
+<?php include '../Modulos/Footer.php'; ?>
 <script>
 // Mostrar modal al hacer clic en el botón
 document.getElementById('abrirModal').addEventListener('click', function() {
@@ -226,7 +227,17 @@ document.getElementById('seleccionarTodos').addEventListener('change', function(
         checkbox.checked = event.target.checked;
     });
 });
-
+new DataTable('#participantesTable', {
+    serverSide: true,
+    ajax: {
+        url: 'participantes_data.php',
+        type: 'POST'
+    },
+    pageLength: 50,
+    language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+    }
+});
 $(document).on('click', '.reset-pass-btn', function() {
     var id = $(this).data('id');
     Swal.fire({
@@ -250,17 +261,6 @@ $(document).on('click', '.reset-pass-btn', function() {
     });
 });
 
-new DataTable('#participantesTable', {
-    serverSide: true,
-    ajax: {
-        url: 'participantes_data.php',
-        type: 'POST'
-    },
-    pageLength: 50,
-    language: {
-        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-    }
-});
+
 </script>
 
-<?php include '../Modulos/Footer.php'; ?>

@@ -65,8 +65,8 @@ $reuniones = $database->getReunionesZoomParticipante($id_curso);
                     <div class="d-flex justify-content-between align-items-center">
                         <h4><?= htmlspecialchars($curso['nombre_curso']) ?></h4>
                         <div>
-                            <a href="contenido.php?clave=<?= $clave_curso ?>" class="btn btn-light btn-sm mr-2">
-                                <i class="fas fa-book"></i> Contenido
+                            <a href="contenido.php?clave=<?= $clave_curso ?>" class="btn btn-light btn-sm mr-2 btn-llamativo">
+                                <i class="fas fa-book girar-icono"></i> Contenido
                             </a>
                             <a href="info.php?clave=<?= $clave_curso ?>" class="btn btn-light btn-sm">
                                 <i class="fas fa-info-circle"></i> Información
@@ -85,17 +85,20 @@ $reuniones = $database->getReunionesZoomParticipante($id_curso);
                                 <thead class="thead-light">
                                     <tr>
                                         <th>Título</th>
+                                                                                <th>Acción</th>
                                         <th>Fecha y Hora</th>
                                         <th>Duración</th>
                                         <th>Estado</th>
-                                        <th>Acción</th>
+
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($reuniones as $reunion):
+                                                                 if($curso['estado'] != 'pago_validado'){
                                         $requiere = isset($reunion['PagoPorce']) ? floatval($reunion['PagoPorce']) : 0;
                                         $acceso = $requiere == 0 || $total_pagado >=  $requiere ;
                                         if (!$acceso) continue;
+                                                                 }
                                         $fecha_reunion = new DateTime($reunion['fecha_hora']);
                                         $fin_reunion = (clone $fecha_reunion)->add(new DateInterval('PT'.$reunion['duracion_minutos'].'M'));
                                         $inicio_visible = (clone $fecha_reunion)->sub(new DateInterval('PT15M'));
@@ -125,10 +128,7 @@ $reuniones = $database->getReunionesZoomParticipante($id_curso);
                                     ?>
                                     <tr>
                                         <td><?= htmlspecialchars($reunion['titulo']) ?></td>
-                                        <td><?= $fecha_reunion->format('d/m/Y H:i') ?></td>
-                                        <td><?= $reunion['duracion_minutos'] ?> min</td>
-                                        <td><span class="badge bg-<?= $estado ?>"><?= $texto_estado ?></span></td>
-                                        <td>
+                                                                                <td>
                                             <?php if ($ahora >= $inicio_visible && $ahora <= $fin_reunion): ?>
                                                 <button onclick="copiarEnlace('<?= htmlspecialchars($reunion['url_zoom']) ?>')" class="btn btn-outline-secondary btn-sm mb-1">
                                                     <i class="fas fa-copy"></i>
@@ -137,6 +137,10 @@ $reuniones = $database->getReunionesZoomParticipante($id_curso);
                                             <?php endif; ?>
                                             <?= $boton ?>
                                         </td>
+                                        <td><?= $fecha_reunion->format('d/m/Y H:i') ?></td>
+                                        <td><?= $reunion['duracion_minutos'] ?> min</td>
+                                        <td><span class="badge bg-<?= $estado ?>"><?= $texto_estado ?></span></td>
+
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>

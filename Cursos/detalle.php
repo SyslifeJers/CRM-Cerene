@@ -42,6 +42,7 @@ $opciones_pago = $database->getOpcionesPagoCurso();
           <table class="table table-bordered">
             <thead>
               <tr>
+                <th>Clave</th>
                 <th>Forma de Pago</th>
                 <th>Enlace</th>
                 <th></th>
@@ -49,21 +50,24 @@ $opciones_pago = $database->getOpcionesPagoCurso();
             </thead>
             <tbody>
               <tr>
+                <td><strong><?= htmlspecialchars($curso['clave_curso']) ?></strong></td>
                 <td>Pago único</td>
-                <td><a href="https://cursos.clinicacerene.com/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?>" target="_blank">https://cursos.clinicacerene.com/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?></a></td>
-                <td><button type="button" class="btn btn-sm btn-outline-primary" onclick="copiarLink('https://cursos.clinicacerene.com/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?>')">Copiar</button></td>
-              </tr>
-              <?php foreach ($opciones_pago as $op): ?>
+                <td><a href="/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?>" target="_blank">/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?></a></td>
+                <td><button type="button" class="btn btn-sm btn-outline-primary" onclick="copiarLink('/Registro.php?clave=<?= htmlspecialchars($curso['clave_curso']) ?>')">Copiar</button></td>
+                </tr>
+                <?php foreach ($opciones_pago as $op): ?>
                 <?php
-                  $linkPago = 'https://cursos.clinicacerene.com/Registro.php?clave=' . $curso['clave_curso'] . '-' . $op['id_opcion'];
+                  $linkPago = '/Registro.php?clave=' . $curso['clave_curso'] . '-' . $op['id_opcion'];
                   $desc = $op['numero_pagos'] . ' pago' . ($op['numero_pagos'] > 1 ? 's' : '') .
-                          ' de ' . $op['tipo'] . ' (Adicional: $' . number_format($op['costo_adicional'], 2) . ')';
+                      ' de ' . $op['tipo'] . ' (Adicional: $' . number_format($op['costo_adicional'], 2) . ')';
                 ?>
                 <tr>
+                  <td class="text-nowrap"><strong><?= htmlspecialchars($curso['clave_curso'] . '-' . $op['id_opcion']) ?></strong></td>
                   <td><?= $desc ?></td>
                   <td><a href="<?= $linkPago ?>" target="_blank"><?= htmlspecialchars($linkPago) ?></a></td>
                   <td><button type="button" class="btn btn-sm btn-outline-primary" onclick="copiarLink('<?= $linkPago ?>')">Copiar</button></td>
                 </tr>
+              
               <?php endforeach; ?>
             </tbody>
           </table>

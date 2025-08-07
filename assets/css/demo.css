@@ -1,3 +1,30 @@
+
+  .btn-llamativo {
+    animation: pulso 1.5s infinite;
+    box-shadow: 0 0 10px #e0e6e1, 0 0 20px #e0e6e1;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .btn-llamativo:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px #e0e6e1, 0 0 30px #e0e6e1;
+  }
+
+    @keyframes pulso {
+    0% { box-shadow: 0 0 5px #e0e6e1; }
+    50% { box-shadow: 0 0 20px #e0e6e1; }
+    100% { box-shadow: 0 0 5px #e0e6e1; }
+  }
+
+  .girar-icono {
+    display: inline-block;
+    animation: girar 4s linear infinite; /* más lento y constante */
+  }
+
+  @keyframes girar {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 .gg-check {
   box-sizing: border-box;
   position: relative;

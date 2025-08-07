@@ -4,17 +4,17 @@ ini_set('display_errors', 1);
 session_start();
 header('Content-Type: text/html; charset=utf-8');
 if (empty($_SESSION['idAdmin'])) {
-  header("Location: https://cursos.clinicacerene.com/logAdmin.php");
+  header("Location: /logAdmin.php");
   exit();
 }
 ?>
-<!DOCTYPE html>
-<html lang="en">
+
+<html lang="es">
 <head>
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>Cerene App</title>
   <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
-  <link rel="icon" href="/assets/img/kaiadmin/favicon.ico" type="image/x-icon" />
+  <link rel="icon" href="/assets/favicon.ico" type="image/x-icon" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- Fonts and icons -->
   <script src="/assets/js/plugin/webfont/webfont.min.js"></script>
@@ -51,7 +51,7 @@ if (empty($_SESSION['idAdmin'])) {
     <!-- Logo Header -->
     <div class="logo-header" data-background-color="dark">
     <a href="/index.php" class="logo">
-      <img src="/logo.png" alt="navbar brand" class="navbar-brand" height="20" />
+      <img src="/assets/logoB.png" alt="navbar brand" class="navbar-brand" height="50" />
     </a>
     <div class="nav-toggle">
       <button class="btn btn-toggle toggle-sidebar"><i class="gg-menu-right"></i></button>
@@ -64,14 +64,14 @@ if (empty($_SESSION['idAdmin'])) {
   <div class="sidebar-wrapper scrollbar scrollbar-inner">
     <div class="sidebar-content">
     <ul class="nav nav-secondary">
-      <li class="nav-item active"></li>
+      <li class="nav-item active">
       <a class="nav-link" href="/Admin/index.php"> <i class="fas fa-home"></i>Inicio <span class="sr-only"></span></a>
       </li>
       <li class="nav-item ">
       <a class="nav-link" href="/Cursos/index.php"><i class="fas fa-clipboard"></i>Curso <span class="sr-only"></span></a>
       </li>
       <li class="nav-item ">
-      <a class="nav-link" href="/Participantes/index.php"><i class="fas fa-users"></i>Participantes <span class="sr-only"></span></a>
+      <a class="nav-link" href="/Participantes/lista.php"><i class="fas fa-users"></i>Participantes <span class="sr-only"></span></a>
       </li>
       <li class="nav-item ">
       <a class="nav-link" href="/Usuarios/index.php"><i class="fas fa-user"></i>Usuarios <span class="sr-only"></span></a>

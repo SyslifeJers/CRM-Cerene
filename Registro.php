@@ -18,7 +18,7 @@ function enviarCorreoPass($destino, $nombreCompleto, $password) {
     $html = "<p>Hola {$nombreCompleto},</p>".
             "<p>Gracias por tu suscripción. A continuación encontrarás tu contraseña temporal:</p>".
             "<p style='font-size:18px'><strong>{$password}</strong></p>".
-            "<p>Puedes acceder a la plataforma desde <a href='https://cursos.clinicacerene.com/index.php'>este enlace</a>.</p>".
+            "<p>Puedes acceder a la plataforma desde <a href='/index.php'>este enlace</a>.</p>".
             "<p>Te recomendamos cambiar la contraseña una vez inicies sesión.</p>";
 
     $ch = curl_init();

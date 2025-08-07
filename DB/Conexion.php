@@ -2,17 +2,11 @@
 
 class Database
 {
-
     private $servername = "localhost";
-
-    private $username = "clini234_cerene";
-
-    private $password = "tu{]ScpQ-Vcg";
-
-    private $dbname = "clini234_cerene";
-
+    private $username = "u529445062_jers";
+    private $password = "Rtx2080_";
+    private $dbname = "u529445062_cenere";
     private $conn;
-
 
 
     public function __construct()
@@ -25,13 +19,10 @@ class Database
     }
 
 
-
     public function getConnection()
     {
-
         return $this->conn;
     }
-
 
 
     public function closeConnection()
@@ -446,7 +437,11 @@ class Database
                           </button>'
                         : 'N/A';
                 }
-
+                $Pagopendiente = '';
+                    if($row['estado'] == 'comprobante_enviado') {
+                        // Pago único: mostrar monto pagado
+                        $Pagopendiente = '<span class="text-warning" title="Pagos pendientes por validar"><i class="fas fa-exclamation-circle"></i></span> 1 por revisar';
+                    } 
                 // Documento de estudios
                 $botonDocumento = $row['documento']
                     ? '<a href="../documentos/' . $row['documento'] . '" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-file"></i> Ver</a>'
@@ -457,8 +452,9 @@ class Database
                 <td>' . $row["id_inscripcion"] . '</td>
                 <td>
                     <strong>'. htmlspecialchars($row["titulo"]) . ' ' . htmlspecialchars($row["nombre_participante"]) . ' ' . htmlspecialchars($row["apellido_participante"]) . '</strong><br>
-                    <small class="text-muted">' . $row["email_participante"] . '</small>
-                    <small class="text-muted">' . $row["telefono_participante"] . '</small>
+                     <small class="text-muted">' . $row["email_participante"] . '</small>
+                    <small class="text-muted">' . $row["telefono_participante"] . '</small><hr>
+                    <small class="text-muted">' . $row["id_participante"] . '</small>
                 </td>
                 <td>' . $fecha_inscripcion . '</td>
                 <td>
@@ -478,18 +474,20 @@ class Database
                 ) .
                 '</td>
                 <td class="text-end">' . ($row["monto_pagado"] ? '$' . number_format($row["monto_pagado"], 2) : 'N/A') . '</td>
-                <td class="text-center">' . $botonComprobante . '</td>
+                <td class="text-center">' 
+                . $Pagopendiente . ' ' .
+                $botonComprobante . '</td>
                 <td class="text-center">' . $botonDocumento . '</td>
                 <td class="text-center">
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
+                        <button style="display: none;" class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-info nota-btn" data-id="' . $row['id_inscripcion'] . '" data-nota="' . $row['nota'] . '" title="Nota">
                             <i class="fas fa-pen"></i>
                         </button>';
 
-                if (!$row['id_opcion_pago']) {
+                if (!$row['id_opcion_pago'] || 1 == 1) {
                     $html .= '<button class="btn btn-success asignar-opcion" data-id="' . $row['id_inscripcion'] . '">
                             <i class="fas fa-calendar-plus"></i>
                         </button>';
@@ -547,7 +545,8 @@ class Database
                 tipo_contenido, 
                 fecha_publicacion,
                 archivo_ruta,
-                enlace_url
+                enlace_url,
+                PagoPorce
               FROM contenido_curso
               WHERE id_curso = ?
               ORDER BY orden, fecha_publicacion DESC";
@@ -596,7 +595,7 @@ class Database
                 $html .= '
             <tr>
                 <td>' . $row["id_contenido"] . '</td>
-                <td>' . htmlspecialchars($row["titulo"]) . '</td>
+                <td>' . htmlspecialchars($row["titulo"]) . ' (' . htmlspecialchars($row["PagoPorce"]) . ')</td>
                 <td>' . $icono . ' ' . ucfirst($row['tipo_contenido']) . '</td>
                 <td>' . $fecha_publicacion . '</td>
                 <td class="text-center">

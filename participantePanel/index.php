@@ -49,24 +49,17 @@ $stmtCedula->close();
                 <thead>
                   <tr>
                     <th>Curso</th>
+                    <th>Acciones</th>
                     <th>Fecha Inscripción</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
+                    
                   </tr>
                 </thead>
                 <tbody>
                   <?php while ($row = $result->fetch_assoc()): ?>
                     <tr>
                       <td><?= htmlspecialchars($row['nombre_curso']) ?></td>
-                      <td><?= date('d/m/Y', strtotime($row['fecha_inscripcion'])) ?></td>
-                      <td>
-                        <span class="badge badge-<?=
-                                                  $row['estado'] == 'pago_validado' ? 'success' : ($row['estado'] == 'registrado' ? 'warning' : 'secondary')
-                                                  ?>">
-                          <?= ucfirst(str_replace('_', ' ', $row['estado'])) ?>
-                        </span>
-                      </td>
-                      <td>
+                                            <td>
                         <?php if ($row['id_opcion_pago'] && ($row['estado'] == 'registrado' || $row['estado'] == 'pagos programados' || $row['estado'] == 'Revision de pago')): ?>
                           <a href="pagos.php?id=<?= $row['id_inscripcion'] ?>" class="btn btn-sm btn-primary">
                             <i class="fas fa-receipt"></i> Ver pagos
@@ -89,6 +82,15 @@ $stmtCedula->close();
 
                         <?php endif; ?>
                       </td>
+                      <td><?= date('d/m/Y', strtotime($row['fecha_inscripcion'])) ?></td>
+                      <td>
+                        <span class="badge badge-<?=
+                                                  $row['estado'] == 'pago_validado' ? 'success' : ($row['estado'] == 'registrado' ? 'warning' : 'secondary')
+                                                  ?>">
+                          <?= ucfirst(str_replace('_', ' ', $row['estado'])) ?>
+                        </span>
+                      </td>
+
                     </tr>
                   <?php endwhile; ?>
                 </tbody>

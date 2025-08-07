@@ -13,7 +13,7 @@ session_start();
             background-color: #f8f9fa;
         }
         .logo {
-            max-width: 200px;
+            max-width: 400px;
             height: auto;
         }
         .hero {
@@ -28,8 +28,8 @@ session_start();
 </head>
 <body>
     <div class="container hero">
-        <img src="https://clinicacerene.com/wp-content/uploads/2024/04/cropped-Sin-titulo-2-199x65.png" alt="Clínica Cerene" class="logo mb-4">
-        <h1 class="mb-3">¡Bienvenido al servicio de cursos de Clínica Cerene!</h1>
+        <img src="/assets/logoCerene.png" alt="Clínica Cerene" class="logo mb-4">
+        <h1 class="mb-3">¡Bienvenido al servicio de cursos de Instituto del Neurodesarrollo Cerene A.C.!</h1>
         <p class="lead mb-4">
             En este portal podrá registrarse y acceder a los cursos ofrecidos por nuestra clínica,
             orientados al desarrollo y formación en el área de la salud mental y terapias especializadas.

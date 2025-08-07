@@ -44,7 +44,7 @@ header('Content-Type: text/html; charset=utf-8');
 
       rel="icon"
 
-      href="/assets/img/kaiadmin/favicon.ico"
+      href="/assets/favicon.ico"
 
       type="image/x-icon"
 
@@ -130,13 +130,13 @@ header('Content-Type: text/html; charset=utf-8');
 
               <img
 
-                src="/logo.png"
+                src="/assets/logoB.png"
 
                 alt="navbar brand"
 
                 class="navbar-brand"
 
-                height="20"
+                height="50"
 
               />
 

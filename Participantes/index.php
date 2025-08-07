@@ -409,10 +409,19 @@ $stmtOpc->close();
             }
         });
     }
-  new DataTable('#inscripcionesTable', {
-    pageLength: 50,
-    language: {
-      url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+new DataTable('#inscripcionesTable', {
+  pageLength: 50,
+  order: [[0, 'desc']], // Ordena por la primera columna (índice 0) en forma descendente
+  language: {
+    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+  }
+});
+  $('#modalComprobante, #modalOpcionPago, #modalNota').on('hide.bs.modal', function () {
+    if (this.contains(document.activeElement)) {
+        document.activeElement.blur();
     }
+    this.setAttribute('inert', '');
+  }).on('show.bs.modal', function () {
+    this.removeAttribute('inert');
   });
     </script>
