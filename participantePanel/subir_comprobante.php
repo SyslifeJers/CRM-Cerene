@@ -79,6 +79,7 @@ try {
         }
     }
 
+
     $file_name = $slugNombre . '_pago' . $numero_pago . '_' . time() . '.' . $file_type;
     $target_file = $target_dir . $file_name;
     if (!move_uploaded_file($_FILES["comprobante"]["tmp_name"], $target_file)) {
@@ -92,6 +93,7 @@ try {
             $updateComprobante->bind_param("si", $file_name, $rechazo['id_comprobante']);
             $updateComprobante->execute();
         } else {
+ 
             $insertStmt = $conn->prepare("INSERT INTO comprobantes_inscripcion (id_inscripcion, numero_pago, metodo_pago, referencia_pago, monto_pagado, comprobante_path) VALUES (?, ?, ?, ?, ?, ?)");
             $insertStmt->bind_param("iissds", $id_inscripcion, $numero_pago, $metodo_pago, $referencia, $monto, $file_name);
             $insertStmt->execute();
