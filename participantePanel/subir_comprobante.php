@@ -73,17 +73,6 @@ try {
             $numero_pago = $countStmt->get_result()->fetch_assoc()['pagos'] + 1;
             $countStmt->close();
 
-            $optStmt = $conn->prepare("SELECT numero_pagos FROM opciones_pago WHERE id_opcion = ?");
-            $optStmt->bind_param("i", $id_opcion_pago);
-            $optStmt->execute();
-            $max_pagos = $optStmt->get_result()->fetch_assoc()['numero_pagos'];
-            $optStmt->close();
-
-            if ($numero_pago > $max_pagos) {
-                unlink($target_file);
-                throw new Exception('Ya se enviaron todos los comprobantes requeridos');
-            }
-
             $insertStmt = $conn->prepare("INSERT INTO comprobantes_inscripcion (id_inscripcion, numero_pago, metodo_pago, referencia_pago, monto_pagado, comprobante_path) VALUES (?, ?, ?, ?, ?, ?)");
             $insertStmt->bind_param("iissds", $id_inscripcion, $numero_pago, $metodo_pago, $referencia, $monto, $file_name);
             $insertStmt->execute();
