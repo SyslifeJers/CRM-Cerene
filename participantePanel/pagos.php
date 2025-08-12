@@ -122,6 +122,45 @@ $stmt->close();
     </form>
     <?php else: ?>
         <div class="alert alert-info mt-4">Se enviaron todos los comprobantes requeridos.</div>
+        <button type="button" class="btn btn-secondary mt-2" data-bs-toggle="modal" data-bs-target="#modalPagoExtra">Agregar pago adicional</button>
+
+        <div class="modal fade" id="modalPagoExtra" tabindex="-1" aria-labelledby="modalPagoExtraLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalPagoExtraLabel">Pago adicional</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-warning">Este es un caso aislado. Solo agrega un pago extra si se te indicó.</p>
+                        <form id="formComprobanteExtra" enctype="multipart/form-data">
+                            <input type="hidden" name="id_inscripcion" value="<?= $id_inscripcion ?>">
+                            <div class="mb-3">
+                                <label>Método de Pago</label>
+                                <select name="metodo_pago" class="form-control" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                    <option value="Oxxo">Oxxo</option>
+                                    <option value="Depósito">Depósito</option>
+                                    <option value="Paypal">PayPal</option>
+                                    <option value="Tarjeta">Tarjeta</option>
+                                </select>
+                            </div>
+                            <input type="hidden" name="referencia_pago" value="">
+                            <div class="mb-3">
+                                <label>Monto Pagado</label>
+                                <input type="number" min="1" step="0.01" name="monto_pagado" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label>Comprobante (PDF/Imagen)</label>
+                                <input type="file" name="comprobante" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Enviar Comprobante</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     <?php endif; ?>
 </div>
 
@@ -141,31 +180,37 @@ document.querySelectorAll('.reemplazo-form').forEach(form => {
     });
 });
 
-document.getElementById('formComprobante')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const fd = new FormData(this);
-    const btn = this.querySelector('button');
-    btn.disabled = true;
-    btn.textContent = "Enviando...";
+function handleUpload(formId) {
+    const form = document.getElementById(formId);
+    form?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fd = new FormData(this);
+        const btn = this.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = "Enviando...";
 
-    fetch('subir_comprobante.php', {
-        method: 'POST',
-        body: fd
-    }).then(r => r.json())
-      .then(res => {
-          alert(res.message);
-          if (res.success) location.reload();
-          else {
+        fetch('subir_comprobante.php', {
+            method: 'POST',
+            body: fd
+        }).then(r => r.json())
+          .then(res => {
+              alert(res.message);
+              if (res.success) location.reload();
+              else {
+                  btn.disabled = false;
+                  btn.textContent = "Enviar Comprobante";
+              }
+          }).catch(err => {
+              console.error(err);
+              alert("Error de red.");
               btn.disabled = false;
               btn.textContent = "Enviar Comprobante";
-          }
-      }).catch(err => {
-          console.error(err);
-          alert("Error de red.");
-          btn.disabled = false;
-          btn.textContent = "Enviar Comprobante";
-      });
-});
+          });
+    });
+}
+
+handleUpload('formComprobante');
+handleUpload('formComprobanteExtra');
 </script>
 <?php include '../Modulos/FooterP.php';
 $database->closeConnection();
