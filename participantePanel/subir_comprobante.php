@@ -29,12 +29,21 @@ try {
     $inscripcionData = $resultCheck->fetch_assoc();
     $id_opcion_pago = $inscripcionData['IdOpcionPago'];
 
+    // Obtener nombre del participante para usarlo en el archivo
+    $nombreStmt = $conn->prepare("SELECT nombre, apellido FROM participantes WHERE id_participante = ?");
+    $nombreStmt->bind_param("i", $_SESSION['participante_id']);
+    $nombreStmt->execute();
+    $datosParticipante = $nombreStmt->get_result()->fetch_assoc();
+    $nombreStmt->close();
+    $slugNombre = 'participante_' . $_SESSION['participante_id'];
+    if ($datosParticipante) {
+        $slugNombre = preg_replace('/[^A-Za-z0-9]/', '_', $datosParticipante['nombre'] . '_' . $datosParticipante['apellido']);
+        $slugNombre = preg_replace('/_+/', '_', $slugNombre);
+    }
+
     // 2. Validar archivo
     $target_dir = "../comprobantes/";
-    $file_name = uniqid() . '_' . basename($_FILES["comprobante"]["name"]);
-    $target_file = $target_dir . $file_name;
-
-    $file_type = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+    $file_type = strtolower(pathinfo($_FILES["comprobante"]["name"], PATHINFO_EXTENSION));
     if (!in_array($file_type, ['pdf', 'jpg', 'jpeg', 'png'])) {
         throw new Exception('Solo se permiten archivos PDF, JPG, JPEG o PNG');
     }
@@ -43,15 +52,13 @@ try {
         throw new Exception('El archivo excede el tamaño máximo de 2MB');
     }
 
-    if (!move_uploaded_file($_FILES["comprobante"]["tmp_name"], $target_file)) {
-        throw new Exception('Error al guardar el archivo en el servidor');
-    }
-
     // 3. Datos comunes
     $metodo_pago = $_POST['metodo_pago'];
     $referencia  = $_POST['referencia_pago'];
     $monto       = (float)$_POST['monto_pagado'];
 
+    $numero_pago = 1;
+    $rechazo = null;
     if ($id_opcion_pago) {
         // Múltiples pagos - revisar si existe uno rechazado
         $rechazadoStmt = $conn->prepare("SELECT id_comprobante, numero_pago FROM comprobantes_inscripcion WHERE id_inscripcion = ? AND validado = 3 ORDER BY numero_pago LIMIT 1");
@@ -61,10 +68,7 @@ try {
         $rechazadoStmt->close();
 
         if ($rechazo) {
-            // Reemplazar comprobante rechazado
-            $updateComprobante = $conn->prepare("UPDATE comprobantes_inscripcion SET  comprobante_path = ?, fecha_carga = NOW(), validado = 0, nota = NULL WHERE id_comprobante = ?");
-            $updateComprobante->bind_param("si", $file_name, $rechazo['id_comprobante']);
-            $updateComprobante->execute();
+            $numero_pago = $rechazo['numero_pago'];
         } else {
             // Nuevo comprobante (no hay rechazados)
             $countStmt = $conn->prepare("SELECT COUNT(*) AS pagos FROM comprobantes_inscripcion WHERE id_inscripcion = ?");
@@ -72,18 +76,22 @@ try {
             $countStmt->execute();
             $numero_pago = $countStmt->get_result()->fetch_assoc()['pagos'] + 1;
             $countStmt->close();
+        }
+    }
 
-            $optStmt = $conn->prepare("SELECT numero_pagos FROM opciones_pago WHERE id_opcion = ?");
-            $optStmt->bind_param("i", $id_opcion_pago);
-            $optStmt->execute();
-            $max_pagos = $optStmt->get_result()->fetch_assoc()['numero_pagos'];
-            $optStmt->close();
+    $file_name = $slugNombre . '_pago' . $numero_pago . '_' . time() . '.' . $file_type;
+    $target_file = $target_dir . $file_name;
+    if (!move_uploaded_file($_FILES["comprobante"]["tmp_name"], $target_file)) {
+        throw new Exception('Error al guardar el archivo en el servidor');
+    }
 
-            if ($numero_pago > $max_pagos) {
-                unlink($target_file);
-                throw new Exception('Ya se enviaron todos los comprobantes requeridos');
-            }
-
+    if ($id_opcion_pago) {
+        if ($rechazo) {
+            // Reemplazar comprobante rechazado
+            $updateComprobante = $conn->prepare("UPDATE comprobantes_inscripcion SET comprobante_path = ?, fecha_carga = NOW(), validado = 0, nota = NULL WHERE id_comprobante = ?");
+            $updateComprobante->bind_param("si", $file_name, $rechazo['id_comprobante']);
+            $updateComprobante->execute();
+        } else {
             $insertStmt = $conn->prepare("INSERT INTO comprobantes_inscripcion (id_inscripcion, numero_pago, metodo_pago, referencia_pago, monto_pagado, comprobante_path) VALUES (?, ?, ?, ?, ?, ?)");
             $insertStmt->bind_param("iissds", $id_inscripcion, $numero_pago, $metodo_pago, $referencia, $monto, $file_name);
             $insertStmt->execute();
