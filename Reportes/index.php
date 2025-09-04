@@ -5,11 +5,47 @@ $conn = $database->getConnection();
 
 $inicio = $_GET['inicio'] ?? '';
 $fin = $_GET['fin'] ?? '';
+$curso = $_GET['curso'] ?? '';
 $total = null;
 
+// Obtener lista de cursos para el filtro
+$cursos = [];
+$resultCursos = $conn->query("SELECT id_curso, nombre_curso FROM cursos");
+if ($resultCursos && $resultCursos->num_rows > 0) {
+    while ($row = $resultCursos->fetch_assoc()) {
+        $cursos[] = $row;
+    }
+}
+
 if ($inicio && $fin) {
-    $stmt = $conn->prepare("SELECT SUM(monto_pagado) AS total FROM comprobantes_inscripcion WHERE validado = 1 AND DATE(fecha_carga) BETWEEN ? AND ?");
-    $stmt->bind_param("ss", $inicio, $fin);
+    $query = "SELECT SUM(
+                    COALESCE(
+                        (
+                            SELECT SUM(IFNULL(ci.monto_pagado, 0))
+                            FROM comprobantes_inscripcion ci
+                            WHERE ci.validado = 1
+                              AND ci.id_inscripcion = i.id_inscripcion
+                              AND DATE(ci.fecha_carga) BETWEEN ? AND ?
+                        ),
+                        IF(DATE(i.fecha_inscripcion) BETWEEN ? AND ?, IFNULL(i.monto_pagado, 0), 0)
+                    )
+                ) AS total
+                FROM inscripciones i
+                JOIN participantes p ON i.id_participante = p.id_participante
+                JOIN cursos c ON i.id_curso = c.id_curso
+                LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
+                WHERE (i.estado = 'pago_validado' OR i.estado = 'pagos programados' OR i.estado = 'Revision de pago')
+                  AND p.email IS NOT NULL
+                  AND p.email <> ''";
+    if ($curso !== '') {
+        $query .= " AND i.id_curso = ?";
+    }
+    $stmt = $conn->prepare($query);
+    if ($curso !== '') {
+        $stmt->bind_param("ssssi", $inicio, $fin, $inicio, $fin, $curso);
+    } else {
+        $stmt->bind_param("ssss", $inicio, $fin, $inicio, $fin);
+    }
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $total = $row['total'] ?? 0;
@@ -20,15 +56,26 @@ if ($inicio && $fin) {
 <div class="container mt-4">
     <h2>Reporte de Pagos</h2>
     <form method="get" class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <label for="inicio" class="form-label">Fecha inicio</label>
             <input type="date" id="inicio" name="inicio" class="form-control" value="<?= htmlspecialchars($inicio) ?>">
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <label for="fin" class="form-label">Fecha fin</label>
             <input type="date" id="fin" name="fin" class="form-control" value="<?= htmlspecialchars($fin) ?>">
         </div>
-        <div class="col-md-4 align-self-end">
+        <div class="col-md-3">
+            <label for="curso" class="form-label">Curso</label>
+            <select id="curso" name="curso" class="form-select">
+                <option value="">Todos</option>
+                <?php foreach ($cursos as $c): ?>
+                    <option value="<?= $c['id_curso']; ?>" <?= $curso == $c['id_curso'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($c['nombre_curso']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="col-md-3 align-self-end">
             <button type="submit" class="btn btn-primary">Filtrar</button>
         </div>
     </form>
@@ -36,7 +83,7 @@ if ($inicio && $fin) {
         <div class="alert alert-info">
             Total recaudado: $<?= number_format($total, 2) ?>
         </div>
-        <a class="btn btn-success" href="exportar_excel.php?inicio=<?= urlencode($inicio) ?>&fin=<?= urlencode($fin) ?>">Exportar a Excel</a>
+        <a class="btn btn-success" href="exportar_excel.php?inicio=<?= urlencode($inicio) ?>&fin=<?= urlencode($fin) ?>&curso=<?= urlencode($curso) ?>">Exportar a Excel</a>
     <?php endif; ?>
 </div>
 

@@ -7,6 +7,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 $inicio = $_GET['inicio'] ?? '';
 $fin = $_GET['fin'] ?? '';
+$curso = $_GET['curso'] ?? '';
 
 if (!$inicio || !$fin) {
     die('Rango de fechas inválido');
@@ -15,8 +16,20 @@ if (!$inicio || !$fin) {
 $database = new Database();
 $conn = $database->getConnection();
 
-$stmt = $conn->prepare("SELECT id_comprobante, id_inscripcion, numero_pago, metodo_pago, referencia_pago, monto_pagado, fecha_carga FROM comprobantes_inscripcion WHERE validado = 1 AND DATE(fecha_carga) BETWEEN ? AND ?");
-$stmt->bind_param('ss', $inicio, $fin);
+$query = "SELECT ci.id_comprobante, ci.id_inscripcion, ci.numero_pago, ci.metodo_pago, ci.referencia_pago, ci.monto_pagado, ci.fecha_carga"
+        . " FROM comprobantes_inscripcion ci"
+        . " JOIN inscripciones i ON ci.id_inscripcion = i.id_inscripcion"
+        . " WHERE ci.validado = 1 AND DATE(ci.fecha_carga) BETWEEN ? AND ?";
+if ($curso !== '') {
+    $query .= " AND i.id_curso = ?";
+}
+$stmt = $conn->prepare($query);
+if ($curso !== '') {
+    $curso = (int) $curso;
+    $stmt->bind_param('ssi', $inicio, $fin, $curso);
+} else {
+    $stmt->bind_param('ss', $inicio, $fin);
+}
 $stmt->execute();
 $result = $stmt->get_result();
 
