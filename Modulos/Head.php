@@ -82,6 +82,9 @@ if (empty($_SESSION['idAdmin'])) {
       <li class="nav-item ">
       <a class="nav-link" href="/Guias/index.php"><i class="fas fa-book"></i>Guías <span class="sr-only"></span></a>
       </li>
+      <li class="nav-item ">
+      <a class="nav-link" href="/Reportes/index.php"><i class="fas fa-chart-bar"></i>Reportes <span class="sr-only"></span></a>
+      </li>
     </ul>
     </div>
   </div>
