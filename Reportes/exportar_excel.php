@@ -36,6 +36,7 @@ $query = "
            i.monto_pagado, i.fecha_inscripcion AS fecha_carga, i.comprobante_path
     FROM inscripciones i
     JOIN cursos c ON i.id_curso = c.id_curso
+
     JOIN participantes p ON i.id_participante = p.id_participante
     WHERE DATE(i.fecha_inscripcion) BETWEEN ? AND ?
       AND i.estado IN ('pago_validado','pagos programados','Revision de pago')

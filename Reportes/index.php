@@ -20,6 +20,7 @@ if ($resultCursos && $resultCursos->num_rows > 0) {
 
 if ($inicio && $fin) {
     $query = "
+
         SELECT c.nombre_curso, CONCAT(p.nombre, ' ', p.apellido) AS participante,
                ci.numero_pago, ci.metodo_pago, ci.monto_pagado, ci.fecha_carga, ci.comprobante_path
         FROM comprobantes_inscripcion ci
@@ -45,6 +46,7 @@ if ($inicio && $fin) {
           )
           " . ($curso !== '' ? " AND i.id_curso = ?" : "") . "
         ORDER BY fecha_carga";
+
 
     $stmt = $conn->prepare($query);
     if ($curso !== '') {
