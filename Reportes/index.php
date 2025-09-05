@@ -6,6 +6,7 @@ $conn = $database->getConnection();
 $inicio = $_GET['inicio'] ?? '';
 $fin = $_GET['fin'] ?? '';
 $curso = $_GET['curso'] ?? '';
+$pagos = [];
 $total = null;
 
 // Obtener lista de cursos para el filtro
@@ -18,37 +19,44 @@ if ($resultCursos && $resultCursos->num_rows > 0) {
 }
 
 if ($inicio && $fin) {
-    $query = "SELECT SUM(
-                    COALESCE(
-                        (
-                            SELECT SUM(IFNULL(ci.monto_pagado, 0))
-                            FROM comprobantes_inscripcion ci
-                            WHERE ci.validado = 1
-                              AND ci.id_inscripcion = i.id_inscripcion
-                              AND DATE(ci.fecha_carga) BETWEEN ? AND ?
-                        ),
-                        IF(DATE(i.fecha_inscripcion) BETWEEN ? AND ?, IFNULL(i.monto_pagado, 0), 0)
-                    )
-                ) AS total
-                FROM inscripciones i
-                JOIN participantes p ON i.id_participante = p.id_participante
-                JOIN cursos c ON i.id_curso = c.id_curso
-                LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
-                WHERE (i.estado = 'pago_validado' OR i.estado = 'pagos programados' OR i.estado = 'Revision de pago')
-                  AND p.email IS NOT NULL
-                  AND p.email <> ''";
-    if ($curso !== '') {
-        $query .= " AND i.id_curso = ?";
-    }
+    $query = "
+        SELECT c.nombre_curso, CONCAT(p.nombre, ' ', p.apellido) AS participante,
+               ci.numero_pago, ci.metodo_pago, ci.monto_pagado, ci.fecha_carga, ci.comprobante_path
+        FROM comprobantes_inscripcion ci
+        JOIN inscripciones i ON ci.id_inscripcion = i.id_inscripcion
+        JOIN cursos c ON i.id_curso = c.id_curso
+        JOIN participantes p ON i.id_participante = p.id_participante
+        WHERE ci.validado = 1
+          AND DATE(ci.fecha_carga) BETWEEN ? AND ?
+          AND p.email IS NOT NULL AND p.email <> ''
+          " . ($curso !== '' ? " AND i.id_curso = ?" : "") . "
+        UNION ALL
+        SELECT c.nombre_curso, CONCAT(p.nombre, ' ', p.apellido) AS participante,
+               1 AS numero_pago, i.metodo_pago, i.monto_pagado, i.fecha_inscripcion AS fecha_carga, i.comprobante_path
+        FROM inscripciones i
+        JOIN cursos c ON i.id_curso = c.id_curso
+        JOIN participantes p ON i.id_participante = p.id_participante
+        WHERE DATE(i.fecha_inscripcion) BETWEEN ? AND ?
+          AND i.estado IN ('pago_validado','pagos programados','Revision de pago')
+          AND p.email IS NOT NULL AND p.email <> ''
+          AND NOT EXISTS (
+                SELECT 1 FROM comprobantes_inscripcion ci2
+                WHERE ci2.id_inscripcion = i.id_inscripcion AND ci2.validado = 1
+          )
+          " . ($curso !== '' ? " AND i.id_curso = ?" : "") . "
+        ORDER BY fecha_carga";
+
     $stmt = $conn->prepare($query);
     if ($curso !== '') {
-        $stmt->bind_param("ssssi", $inicio, $fin, $inicio, $fin, $curso);
+        $cursoInt = (int) $curso;
+        $stmt->bind_param('ssissi', $inicio, $fin, $cursoInt, $inicio, $fin, $cursoInt);
     } else {
-        $stmt->bind_param("ssss", $inicio, $fin, $inicio, $fin);
+        $stmt->bind_param('ssss', $inicio, $fin, $inicio, $fin);
     }
     $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $total = $row['total'] ?? 0;
+    $result = $stmt->get_result();
+    $pagos = $result->fetch_all(MYSQLI_ASSOC);
+    $total = array_sum(array_column($pagos, 'monto_pagado'));
 }
 ?>
 <?php include '../Modulos/Head.php'; ?>
@@ -79,11 +87,47 @@ if ($inicio && $fin) {
             <button type="submit" class="btn btn-primary">Filtrar</button>
         </div>
     </form>
-    <?php if ($total !== null): ?>
-        <div class="alert alert-info">
-            Total recaudado: $<?= number_format($total, 2) ?>
-        </div>
-        <a class="btn btn-success" href="exportar_excel.php?inicio=<?= urlencode($inicio) ?>&fin=<?= urlencode($fin) ?>&curso=<?= urlencode($curso) ?>">Exportar a Excel</a>
+    <?php if ($inicio && $fin): ?>
+        <?php if ($pagos): ?>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Curso</th>
+                            <th>Participante</th>
+                            <th>Método de Pago</th>
+                            <th>Monto Pagado</th>
+                            <th>Fecha</th>
+                            <th>Comprobante</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($pagos as $p): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($p['nombre_curso']); ?></td>
+                            <td><?= htmlspecialchars($p['participante']); ?></td>
+                            <td><?= htmlspecialchars($p['metodo_pago']); ?></td>
+                            <td>$<?= number_format($p['monto_pagado'], 2); ?></td>
+                            <td><?= htmlspecialchars($p['fecha_carga']); ?></td>
+                            <td>
+                                <?php if ($p['comprobante_path']): ?>
+                                    <a href="https://cursos.clinicacerene.com/comprobantes/<?= htmlspecialchars($p['comprobante_path']); ?>" target="_blank">Ver</a>
+                                <?php else: ?>
+                                    N/A
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-info">
+                Total recaudado: $<?= number_format($total, 2); ?>
+            </div>
+            <a class="btn btn-success" href="exportar_excel.php?inicio=<?= urlencode($inicio) ?>&fin=<?= urlencode($fin) ?>&curso=<?= urlencode($curso) ?>">Exportar a Excel</a>
+        <?php else: ?>
+            <p>No se encontraron pagos para el rango seleccionado.</p>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 
