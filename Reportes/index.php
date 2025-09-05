@@ -18,33 +18,38 @@ if ($resultCursos && $resultCursos->num_rows > 0) {
 }
 
 if ($inicio && $fin) {
-    $query = "SELECT SUM(
-                    COALESCE(
-                        (
-                            SELECT SUM(IFNULL(ci.monto_pagado, 0))
-                            FROM comprobantes_inscripcion ci
-                            WHERE ci.validado = 1
-                              AND ci.id_inscripcion = i.id_inscripcion
-                              AND DATE(ci.fecha_carga) BETWEEN ? AND ?
-                        ),
-                        IF(DATE(i.fecha_inscripcion) BETWEEN ? AND ?, IFNULL(i.monto_pagado, 0), 0)
-                    )
-                ) AS total
-                FROM inscripciones i
-                JOIN participantes p ON i.id_participante = p.id_participante
-                JOIN cursos c ON i.id_curso = c.id_curso
-                LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
-                WHERE (i.estado = 'pago_validado' OR i.estado = 'pagos programados' OR i.estado = 'Revision de pago')
-                  AND p.email IS NOT NULL
-                  AND p.email <> ''";
-    if ($curso !== '') {
-        $query .= " AND i.id_curso = ?";
-    }
+    $query = "
+        SELECT SUM(monto_pagado) AS total FROM (
+            SELECT i.id_inscripcion, i.monto_pagado
+            FROM inscripciones i
+            JOIN participantes p ON i.id_participante = p.id_participante
+            WHERE DATE(i.fecha_inscripcion) BETWEEN ? AND ?
+              AND i.estado IN ('pago_validado','pagos programados','Revision de pago')
+              AND p.email IS NOT NULL AND p.email <> ''
+              " . ($curso !== '' ? " AND i.id_curso = ?" : "") . "
+              AND NOT EXISTS (
+                    SELECT 1 FROM comprobantes_inscripcion ci
+                    WHERE ci.id_inscripcion = i.id_inscripcion AND ci.validado = 1
+              )
+            UNION ALL
+            SELECT i.id_inscripcion, SUM(ci.monto_pagado) AS monto_pagado
+            FROM inscripciones i
+            JOIN comprobantes_inscripcion ci ON ci.id_inscripcion = i.id_inscripcion
+            JOIN participantes p ON i.id_participante = p.id_participante
+            WHERE ci.validado = 1
+              AND DATE(ci.fecha_carga) BETWEEN ? AND ?
+              AND i.estado IN ('pago_validado','pagos programados','Revision de pago')
+              AND p.email IS NOT NULL AND p.email <> ''
+              " . ($curso !== '' ? " AND i.id_curso = ?" : "") . "
+            GROUP BY i.id_inscripcion
+        ) t";
+
     $stmt = $conn->prepare($query);
     if ($curso !== '') {
-        $stmt->bind_param("ssssi", $inicio, $fin, $inicio, $fin, $curso);
+        $cursoInt = (int) $curso;
+        $stmt->bind_param('ssissi', $inicio, $fin, $cursoInt, $inicio, $fin, $cursoInt);
     } else {
-        $stmt->bind_param("ssss", $inicio, $fin, $inicio, $fin);
+        $stmt->bind_param('ssss', $inicio, $fin, $inicio, $fin);
     }
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();

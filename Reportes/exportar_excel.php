@@ -16,19 +16,35 @@ if (!$inicio || !$fin) {
 $database = new Database();
 $conn = $database->getConnection();
 
-$query = "SELECT ci.id_comprobante, ci.id_inscripcion, ci.numero_pago, ci.metodo_pago, ci.referencia_pago, ci.monto_pagado, ci.fecha_carga"
-        . " FROM comprobantes_inscripcion ci"
-        . " JOIN inscripciones i ON ci.id_inscripcion = i.id_inscripcion"
-        . " WHERE ci.validado = 1 AND DATE(ci.fecha_carga) BETWEEN ? AND ?";
-if ($curso !== '') {
-    $query .= " AND i.id_curso = ?";
-}
+$query = "
+    SELECT ci.id_comprobante, ci.id_inscripcion, ci.numero_pago, ci.metodo_pago, ci.referencia_pago, ci.monto_pagado, ci.fecha_carga
+    FROM comprobantes_inscripcion ci
+    JOIN inscripciones i ON ci.id_inscripcion = i.id_inscripcion
+    JOIN participantes p ON i.id_participante = p.id_participante
+    WHERE ci.validado = 1
+      AND DATE(ci.fecha_carga) BETWEEN ? AND ?
+      AND p.email IS NOT NULL AND p.email <> ''
+      " . ($curso !== '' ? " AND i.id_curso = ?" : "") . "
+    UNION ALL
+    SELECT NULL AS id_comprobante, i.id_inscripcion, 1 AS numero_pago, i.metodo_pago, NULL AS referencia_pago, i.monto_pagado, i.fecha_inscripcion AS fecha_carga
+    FROM inscripciones i
+    JOIN participantes p ON i.id_participante = p.id_participante
+    WHERE DATE(i.fecha_inscripcion) BETWEEN ? AND ?
+      AND i.estado IN ('pago_validado','pagos programados','Revision de pago')
+      AND p.email IS NOT NULL AND p.email <> ''
+      AND NOT EXISTS (
+        SELECT 1 FROM comprobantes_inscripcion ci2
+        WHERE ci2.id_inscripcion = i.id_inscripcion AND ci2.validado = 1
+      )
+      " . ($curso !== '' ? " AND i.id_curso = ?" : "") . "
+    ORDER BY fecha_carga";
+
 $stmt = $conn->prepare($query);
 if ($curso !== '') {
     $curso = (int) $curso;
-    $stmt->bind_param('ssi', $inicio, $fin, $curso);
+    $stmt->bind_param('ssissi', $inicio, $fin, $curso, $inicio, $fin, $curso);
 } else {
-    $stmt->bind_param('ss', $inicio, $fin);
+    $stmt->bind_param('ssss', $inicio, $fin, $inicio, $fin);
 }
 $stmt->execute();
 $result = $stmt->get_result();
