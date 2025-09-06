@@ -91,6 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $curso) {
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Error: Formato de correo electrónico inválido";
+    } elseif (!preg_match('/@gmail\.com$/i', $email)) {
+        $error = "Error: Solo se permiten correos de Gmail";
     } else {
         try {
         // Generar contraseña de 6 dígitos
