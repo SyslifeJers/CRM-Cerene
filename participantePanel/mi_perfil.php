@@ -14,12 +14,13 @@ $conn = $database->getConnection();
 $id_participante = $_SESSION['participante_id'];
 
 // Obtener datos actuales
-$stmt = $conn->prepare("SELECT nombre, apellido, cedula, titulo FROM participantes WHERE id_participante = ?");
+$stmt = $conn->prepare("SELECT nombre, apellido, cedula, titulo, email FROM participantes WHERE id_participante = ?");
 $stmt->bind_param("i", $id_participante);
 $stmt->execute();
-$stmt->bind_result($nombre, $apellido, $cedula, $titulo);
+$stmt->bind_result($nombre, $apellido, $cedula, $titulo, $email_actual);
 $stmt->fetch();
 $stmt->close();
+$_SESSION['email'] = $email_actual;
 ?>
 
 <div class="container mt-5">
@@ -55,6 +56,22 @@ $stmt->close();
             <input type="text" class="form-control" name="titulo_otro" id="titulo_otro" value="<?= (!in_array($titulo, ['Psicólogo(a)', 'Médico(a)', 'Licenciado(a)'])) ? htmlspecialchars($titulo) : '' ?>">
         </div>
         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+    </form>
+
+    <hr class="my-4">
+
+    <!-- Cambiar Correo -->
+    <h4 class="mt-5">Cambiar Correo Electrónico</h4>
+    <form method="POST" action="procesar_cambio_email.php">
+        <div class="mb-3">
+            <label for="email_nuevo" class="form-label">Nuevo Correo*</label>
+            <input type="email" class="form-control" id="email_nuevo" name="email_nuevo" value="<?= htmlspecialchars($email_actual) ?>" required>
+        </div>
+        <div class="mb-3">
+            <label for="email_confirmar" class="form-label">Confirmar Nuevo Correo*</label>
+            <input type="email" class="form-control" id="email_confirmar" name="email_confirmar" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Correo</button>
     </form>
 
     <hr class="my-4">
@@ -102,7 +119,7 @@ if (document.getElementById('tituloSelect').value === 'Otro') {
         Swal.fire({
             icon: 'success',
             title: '¡Éxito!',
-            text: '<?= $_GET['success'] === 'nombre_actualizado' ? 'Nombre actualizado correctamente.' : 'Contraseña actualizada correctamente.' ?>',
+            text: '<?= $_GET['success'] === 'nombre_actualizado' ? 'Nombre actualizado correctamente.' : ($_GET['success'] === 'email_actualizado' ? 'Correo actualizado correctamente.' : 'Contraseña actualizada correctamente.') ?>',
             confirmButtonText: 'OK'
         });
     <?php elseif (isset($_GET['error'])): ?>
@@ -115,6 +132,10 @@ if (document.getElementById('tituloSelect').value === 'Otro') {
                     case 'pass_corta': echo "La nueva contraseña es muy corta."; break;
                     case 'confirmacion_incorrecta': echo "Las contraseñas no coinciden."; break;
                     case 'pass_actual_incorrecta': echo "La contraseña actual es incorrecta."; break;
+                    case 'email_invalido': echo "Correo electrónico inválido."; break;
+                    case 'email_en_uso': echo "El correo ya está registrado."; break;
+                    case 'email_confirmacion_incorrecta': echo "Los correos no coinciden."; break;
+                    case 'email_no_gmail': echo "Solo se permiten correos de Gmail."; break;
                     default: echo "Ocurrió un error inesperado.";
                 }
             ?>`,
@@ -126,13 +147,19 @@ if (document.getElementById('tituloSelect').value === 'Otro') {
 document.addEventListener("DOMContentLoaded", function () {
     const nuevaPass = document.getElementById("pass_nueva");
     const confirmarPass = document.getElementById("confirmar_pass");
+    const nuevoEmail = document.getElementById("email_nuevo");
+    const confirmarEmail = document.getElementById("email_confirmar");
 
     // Crear elementos visuales de retroalimentación
     const feedbackSeguridad = document.createElement("div");
     const feedbackCoinciden = document.createElement("div");
+    const feedbackEmail = document.createElement("div");
 
     nuevaPass.parentNode.appendChild(feedbackSeguridad);
     confirmarPass.parentNode.appendChild(feedbackCoinciden);
+    if (confirmarEmail) {
+        confirmarEmail.parentNode.appendChild(feedbackEmail);
+    }
 
     // Función para evaluar seguridad
     function evaluarSeguridad(pass) {
@@ -167,5 +194,20 @@ document.addEventListener("DOMContentLoaded", function () {
             feedbackCoinciden.style.color = "red";
         }
     });
+
+    if (nuevoEmail && confirmarEmail) {
+        function validarEmail() {
+            if (confirmarEmail.value === nuevoEmail.value) {
+                feedbackEmail.textContent = "✅ Los correos coinciden";
+                feedbackEmail.style.color = "green";
+            } else {
+                feedbackEmail.textContent = "❌ Los correos no coinciden";
+                feedbackEmail.style.color = "red";
+            }
+        }
+
+        nuevoEmail.addEventListener("input", validarEmail);
+        confirmarEmail.addEventListener("input", validarEmail);
+    }
 });
 </script>
