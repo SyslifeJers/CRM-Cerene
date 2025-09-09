@@ -102,6 +102,11 @@ $stmtOpc->close();
                         <label for="montoDeclarado" class="form-label">Monto declarado</label>
                         <input type="number" step="0.01" class="form-control" id="montoDeclarado">
                     </div>
+
+                    <div class="mb-3">
+                        <label for="fechaPago" class="form-label">Fecha de pago</label>
+                        <input type="date" class="form-control" id="fechaPago" value="<?php echo date('Y-m-d'); ?>">
+                    </div>
                     
                     <form id="formRechazo" class="d-none">
                         <input type="hidden" name="id_inscripcion" id="idInscripcionRechazo">
@@ -223,6 +228,8 @@ $stmtOpc->close();
             
             $("#idInscripcionRechazo").val(idInscripcion);
             $("#montoDeclarado").val(monto);
+            const today = new Date().toISOString().split('T')[0];
+            $("#fechaPago").val(today);
             $("#formRechazo").addClass("d-none");
             $("#btnAprobar, #btnRechazar").show();
             
@@ -269,7 +276,8 @@ $stmtOpc->close();
                         data: {
                             accion: "aprobar",
                             id_inscripcion: idInscripcion,
-                            monto_pagado: $("#montoDeclarado").val()
+                            monto_pagado: $("#montoDeclarado").val(),
+                            fecha_pago: $("#fechaPago").val()
                         },
                         success: function(response) {
                             if (response.success) {
