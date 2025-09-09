@@ -224,12 +224,13 @@ $stmtOpc->close();
             const idInscripcion = $(this).data("id");
             const archivo = $(this).data("archivo");
             const monto = $(this).data("monto");
+            const fecha = $(this).data("fecha");
             const extension = archivo.split(".").pop().toLowerCase();
-            
+
             $("#idInscripcionRechazo").val(idInscripcion);
             $("#montoDeclarado").val(monto);
             const today = new Date().toISOString().split('T')[0];
-            $("#fechaPago").val(today);
+            $("#fechaPago").val(fecha || today);
             $("#formRechazo").addClass("d-none");
             $("#btnAprobar, #btnRechazar").show();
             

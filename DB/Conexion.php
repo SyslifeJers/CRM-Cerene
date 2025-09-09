@@ -428,13 +428,18 @@ class Database
                     $botonComprobante = $badgePendiente .'<a href="pagos.php?id=' . $row['id_inscripcion'] . '" class="btn btn-sm btn-info"><i class="fas fa-file-invoice"></i> Ver pagos programados</a>';
                 } else {
                     // Pago único: mostrar visor modal existente
-                                       $botonComprobante = $row['comprobante_path']
+                    $fechaPago = ($row['estado'] === 'pago_validado' && !empty($row['fecha_cambio_estado']))
+                        ? date('Y-m-d', strtotime($row['fecha_cambio_estado']))
+                        : '';
+                    $botonComprobante = $row['comprobante_path']
                         ? '<button class="btn btn-sm btn-info ver-comprobante"'
                         . ' data-id="' . $row['id_inscripcion'] . '"'
                         . ' data-archivo="' . $row['comprobante_path'] . '"'
-                        . ' data-monto="' . $row['monto_pagado'] . '">
-                            <i class="fas fa-file-invoice"></i> Ver
-                          </button>'
+                        . ' data-monto="' . $row['monto_pagado'] . '"'
+                        . ' data-fecha="' . $fechaPago . '"'
+                        . '>'
+                        . '    <i class="fas fa-file-invoice"></i> Ver'
+                        . '  </button>'
                         : 'N/A';
                 }
                 $Pagopendiente = '';
