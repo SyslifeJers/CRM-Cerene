@@ -131,7 +131,19 @@ $faltante = $inscripcion['costo'] - $total_validado;
                             <input type="number" step="0.01" class="form-control form-control-sm monto-input" data-id="<?= $pago['id_comprobante'] ?>" value="<?= number_format($pago['monto_pagado'], 2, '.', '') ?>">
                         </td>
                         <td><a href="../comprobantes/<?= htmlspecialchars($pago['comprobante_path']) ?>" target="_blank">Ver</a></td>
-                        <td><?= date('d/m/Y', strtotime($pago['fecha_carga'])) ?></td>
+                        <?php
+                            $fechaOriginal = $pago['fecha_carga'] ?? null;
+                            $fechaTimestamp = $fechaOriginal ? strtotime($fechaOriginal) : false;
+                            $fechaValor = $fechaTimestamp ? date('Y-m-d', $fechaTimestamp) : '';
+                            $fechaMostrar = $fechaTimestamp ? date('d/m/Y', $fechaTimestamp) : 'Sin fecha';
+                        ?>
+                        <td>
+                            <?php if ($isMultiple && !empty($pago['id_comprobante'])): ?>
+                                <input type="date" class="form-control form-control-sm fecha-input" data-id="<?= $pago['id_comprobante'] ?>" value="<?= $fechaValor ?>">
+                            <?php else: ?>
+                                <?= $fechaMostrar ?>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <?php if ($isMultiple): ?>
                                 <select class="form-select form-select-sm validar-select" data-id="<?= $pago['id_comprobante'] ?>">
@@ -178,13 +190,60 @@ $database->closeConnection();
 ?>
 <script>
 $(document).ready(function () {
+    function obtenerDatosFila($elemento) {
+        const $fila = $elemento.closest('tr');
+        const id = $elemento.data('id')
+            || $fila.find('.monto-input').data('id')
+            || $fila.find('.fecha-input').data('id');
+
+        return {
+            id: id,
+            monto: $fila.find('.monto-input').val(),
+            fecha: $fila.find('.fecha-input').val(),
+            validado: $fila.find('.validar-select').val()
+        };
+    }
+
+    function manejarRespuesta(res) {
+        if (res.success) {
+            Swal.fire('Éxito', res.message, 'success').then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire('Error', res.message, 'error');
+        }
+    }
+
+    function actualizarComprobante(datos, nota = null) {
+        if (!datos.id) {
+            return;
+        }
+
+        if (!datos.fecha) {
+            Swal.fire('Error', 'Debes proporcionar una fecha válida.', 'error');
+            return;
+        }
+
+        const payload = {
+            accion: 'actualizar',
+            id_comprobante: datos.id,
+            validado: datos.validado ?? 0,
+            monto_pagado: datos.monto,
+            fecha_carga: datos.fecha
+        };
+
+        if (nota !== null) {
+            payload.nota = nota;
+        }
+
+        $.post('gestion_comprobante.php', payload, manejarRespuesta, 'json');
+    }
+
     $('.validar-select').change(function () {
-        const id = $(this).data('id');
+        const datos = obtenerDatosFila($(this));
         const val = $(this).val();
-        const monto = $(this).closest('tr').find('.monto-input').val();
 
         if (val == 3) {
-            // Si es Rechazado, pedir razón
             Swal.fire({
                 title: 'Razón del rechazo',
                 input: 'textarea',
@@ -203,42 +262,29 @@ $(document).ready(function () {
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    $.post('gestion_comprobante.php', {
-                        accion: 'actualizar',
-                        id_comprobante: id,
-                        validado: val,
-                        nota: result.value,
-                        monto_pagado: monto
-                    }, function (res) {
-                        if (res.success) {
-                            Swal.fire('Éxito', res.message, 'success').then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire('Error', res.message, 'error');
-                        }
-                    }, 'json');
+                    actualizarComprobante(datos, result.value);
                 } else {
-                    // Si cancela, volver al valor anterior (opcional)
                     location.reload();
                 }
             });
         } else {
-            // Si es Pendiente o Correcto
-            $.post('gestion_comprobante.php', {
-                accion: 'actualizar',
-                id_comprobante: id,
-                validado: val,
-                monto_pagado: monto
-            }, function (res) {
-                if (res.success) {
-                    Swal.fire('Éxito', res.message, 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', res.message, 'error');
-                }
-            }, 'json');
+            actualizarComprobante(datos);
+        }
+    });
+
+    $('.monto-input').on('change', function () {
+        const datos = obtenerDatosFila($(this));
+
+        if (datos.id) {
+            actualizarComprobante(datos);
+        }
+    });
+
+    $('.fecha-input').on('change', function () {
+        const datos = obtenerDatosFila($(this));
+
+        if (datos.id) {
+            actualizarComprobante(datos);
         }
     });
 
