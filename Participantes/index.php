@@ -433,4 +433,13 @@ new DataTable('#inscripcionesTable', {
   }).on('show.bs.modal', function () {
     this.removeAttribute('inert');
   });
+
+  $('#modalComprobante, #modalOpcionPago, #modalNota').on('hide.bs.modal', function () {
+    if (this.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
+    this.setAttribute('inert', '');
+  }).on('show.bs.modal', function () {
+    this.removeAttribute('inert');
+  });
     </script>
