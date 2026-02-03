@@ -225,37 +225,60 @@ $stmtOpc->close();
             const archivo = $(this).data("archivo");
             const monto = $(this).data("monto");
             const fecha = $(this).data("fecha");
-            const extension = archivo.split(".").pop().toLowerCase();
+            const today = new Date().toISOString().split('T')[0];
 
             $("#idInscripcionRechazo").val(idInscripcion);
             $("#montoDeclarado").val(monto);
-            const today = new Date().toISOString().split('T')[0];
             $("#fechaPago").val(fecha || today);
             $("#formRechazo").addClass("d-none");
             $("#btnAprobar, #btnRechazar").show();
-            
-            // Mostrar el documento según su tipo
-            if (["jpg", "jpeg", "png"].includes(extension)) {
-                $("#visorDocumento").html(`<img src="../comprobantes/${archivo}" class="img-fluid" alt="Comprobante">`);
-            } else if (extension === "pdf") {
-                $("#visorDocumento").html(`
-                    <embed src="../comprobantes/${archivo}" type="application/pdf" width="100%" height="500px">
-                    <div class="mt-2">
-                        <a href="../comprobantes/${archivo}" target="_blank" class="btn btn-sm btn-info">
-                            <i class="fas fa-download"></i> Descargar PDF
-                        </a>
-                    </div>
-                `);
-            } else {
-                $("#visorDocumento").html(`
-                    <div class="alert alert-warning">No hay vista previa disponible para este tipo de archivo</div>
-                    <a href="../comprobantes/${archivo}" class="btn btn-info" download>
-                        <i class="fas fa-download"></i> Descargar Comprobante
-                    </a>
-                `);
+
+            if (!archivo) {
+                $("#visorDocumento").html('<div class="alert alert-danger">No hay archivo de comprobante asociado a esta inscripción.</div>');
+                $("#modalComprobante").modal("show");
+                return;
             }
-            
+
+            const extension = archivo.split(".").pop().toLowerCase();
+            const archivoUrl = `../comprobantes/${encodeURI(archivo)}`;
+
+            $("#visorDocumento").html('<div class="text-muted">Cargando comprobante...</div>');
             $("#modalComprobante").modal("show");
+
+            fetch(archivoUrl, { method: "HEAD" })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`No se pudo acceder al archivo (${response.status} ${response.statusText}).`);
+                    }
+
+                    // Mostrar el documento según su tipo
+                    if (["jpg", "jpeg", "png"].includes(extension)) {
+                        $("#visorDocumento").html(`<img src="${archivoUrl}" class="img-fluid" alt="Comprobante">`);
+                    } else if (extension === "pdf") {
+                        $("#visorDocumento").html(`
+                            <embed src="${archivoUrl}" type="application/pdf" width="100%" height="500px">
+                            <div class="mt-2">
+                                <a href="${archivoUrl}" target="_blank" class="btn btn-sm btn-info">
+                                    <i class="fas fa-download"></i> Descargar PDF
+                                </a>
+                            </div>
+                        `);
+                    } else {
+                        $("#visorDocumento").html(`
+                            <div class="alert alert-warning">No hay vista previa disponible para este tipo de archivo</div>
+                            <a href="${archivoUrl}" class="btn btn-info" download>
+                                <i class="fas fa-download"></i> Descargar Comprobante
+                            </a>
+                        `);
+                    }
+                })
+                .catch((error) => {
+                    $("#visorDocumento").html(`
+                        <div class="alert alert-danger">
+                            No se pudo abrir el comprobante. ${error.message}
+                        </div>
+                    `);
+                });
         });
         
         // Aprobar comprobante
