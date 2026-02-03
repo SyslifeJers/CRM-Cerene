@@ -431,16 +431,18 @@ class Database
                     $fechaPago = ($row['estado'] === 'pago_validado' && !empty($row['fecha_cambio_estado']))
                         ? date('Y-m-d', strtotime($row['fecha_cambio_estado']))
                         : '';
-                    $botonComprobante = $row['comprobante_path']
-                        ? '<button class="btn btn-sm btn-info ver-comprobante"'
-                        . ' data-id="' . $row['id_inscripcion'] . '"'
-                        . ' data-archivo="' . $row['comprobante_path'] . '"'
-                        . ' data-monto="' . $row['monto_pagado'] . '"'
-                        . ' data-fecha="' . $fechaPago . '"'
-                        . '>'
-                        . '    <i class="fas fa-file-invoice"></i> Ver'
-                        . '  </button>'
-                        : 'N/A';
+                    if ($row['comprobante_path']) {
+                        $archivo = json_encode($row['comprobante_path']);
+                        $monto = json_encode($row['monto_pagado']);
+                        $fecha = json_encode($fechaPago);
+                        $botonComprobante = '<button class="btn btn-sm btn-info"'
+                            . ' onclick="verComprobante(' . (int) $row['id_inscripcion'] . ', ' . $archivo . ', ' . $monto . ', ' . $fecha . ')"'
+                            . '>'
+                            . '    <i class="fas fa-file-invoice"></i> Ver'
+                            . '  </button>';
+                    } else {
+                        $botonComprobante = 'N/A';
+                    }
                 }
                 $Pagopendiente = '';
                     if($row['estado'] == 'comprobante_enviado') {

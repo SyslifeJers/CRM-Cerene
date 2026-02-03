@@ -220,15 +220,11 @@ $stmtOpc->close();
             });
         });
         // Ver comprobante
-        $(".ver-comprobante").click(function() {
-            const idInscripcion = $(this).data("id");
-            const archivo = $(this).data("archivo");
-            const monto = $(this).data("monto");
-            const fecha = $(this).data("fecha");
+        window.verComprobante = function(idInscripcion, archivo, monto, fecha) {
             const today = new Date().toISOString().split('T')[0];
 
             $("#idInscripcionRechazo").val(idInscripcion);
-            $("#montoDeclarado").val(monto);
+            $("#montoDeclarado").val(monto ?? "");
             $("#fechaPago").val(fecha || today);
             $("#formRechazo").addClass("d-none");
             $("#btnAprobar, #btnRechazar").show();
@@ -279,7 +275,7 @@ $stmtOpc->close();
                         </div>
                     `);
                 });
-        });
+        };
         
         // Aprobar comprobante
         $("#btnAprobar").click(function() {
