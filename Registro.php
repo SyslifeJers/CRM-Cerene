@@ -114,12 +114,16 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
             }
             $estado = $curso['requiere_pago'] ? 'registrado' : 'pago_validado';
             // Insertar inscripción con posible opción de pago
+            // Obtener la fecha actual en la zona horaria de México Centro
+            $dt = new DateTime('now', new DateTimeZone('America/Mexico_City'));
+            $fecha_inscripcion = $dt->format('Y-m-d H:i:s');
+
             $sql_inscripcion = "INSERT INTO inscripciones
                             (id_curso, id_participante, estado, fecha_inscripcion, IdOpcionPago)
-                            VALUES (?, ?, ?, NOW(), ?)";
+                            VALUES (?, ?, ?, ?, ?)";
 
             $stmt_inscripcion = $database->getConnection()->prepare($sql_inscripcion);
-            $stmt_inscripcion->bind_param("iisi", $curso['id_curso'], $id_participante, $estado, $opcion_pago_id);
+            $stmt_inscripcion->bind_param("iissi", $curso['id_curso'], $id_participante, $estado, $fecha_inscripcion, $opcion_pago_id);
 
             if (!$stmt_inscripcion->execute()) {
                 throw new Exception("Error al inscribir: " . $stmt_inscripcion->error);

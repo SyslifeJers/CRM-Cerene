@@ -2,11 +2,6 @@
 session_start();
 require_once '../../DB/Conexion.php';
 
-// Verificar autenticación
-if (!isset($_SESSION['participante_id'])) {
-    header("Location: ../../login.php?error=no_autorizado");
-    exit();
-}
 
 // Validar método y datos básicos
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['id_contenido'], $_POST['id_curso'])) {

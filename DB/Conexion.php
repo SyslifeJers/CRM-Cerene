@@ -407,7 +407,7 @@ class Database
                 ];
 
                 // Formatear fechas
-                $fecha_inscripcion = date('d/m/Y H:i', strtotime($row['fecha_inscripcion']));
+                $fecha_inscripcion = date('d/m/Y', strtotime($row['fecha_inscripcion']));
                 $fecha_cambio = $row['fecha_cambio_estado'] ? date('d/m/Y H:i', strtotime($row['fecha_cambio_estado'])) : 'N/A';
 
                 // Botón o enlace de comprobante según la opción de pago
@@ -432,14 +432,11 @@ class Database
                         ? date('Y-m-d', strtotime($row['fecha_cambio_estado']))
                         : '';
                     if ($row['comprobante_path']) {
-                        $archivo = json_encode($row['comprobante_path']);
-                        $monto = json_encode($row['monto_pagado']);
-                        $fecha = json_encode($fechaPago);
-                        $botonComprobante = '<button class="btn btn-sm btn-info"'
-                            . ' onclick="verComprobante(' . (int) $row['id_inscripcion'] . ', ' . $archivo . ', ' . $monto . ', ' . $fecha . ')"'
-                            . '>'
-                            . '    <i class="fas fa-file-invoice"></i> Ver'
-                            . '  </button>';
+                        $archivo = htmlspecialchars($row['comprobante_path']);
+                        $monto = htmlspecialchars($row['monto_pagado']);
+                        $fecha = htmlspecialchars($fechaPago);
+                        $idInscripcion = (int) $row['id_inscripcion'];
+                        $botonComprobante = "<button class=\"btn btn-sm btn-info\" onclick=\"verComprobante(" . $idInscripcion . ", '" . $archivo . "', '" . $monto . "', '" . $fecha . "')\"><i class=\"fas fa-file-invoice\"></i> Ver</button>";
                     } else {
                         $botonComprobante = 'N/A';
                     }
