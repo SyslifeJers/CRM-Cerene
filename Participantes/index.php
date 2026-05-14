@@ -194,6 +194,66 @@ $stmtOpc->close();
         </div>
     </div>
 
+    <!-- Modal Subir Comprobante Admin -->
+    <div class="modal fade" id="modalComprobanteAdmin" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Subir comprobante como admin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        Esta carga es un caso aislado. El comprobante quedará registrado como enviado por el participante.
+                    </div>
+                    <form id="formComprobanteAdmin" enctype="multipart/form-data">
+                        <input type="hidden" name="accion" value="subir_comprobante_admin">
+                        <input type="hidden" name="id_inscripcion" id="idInscripcionComprobanteAdmin">
+
+                        <div class="mb-3">
+                            <label class="form-label">Participante</label>
+                            <input type="text" class="form-control" id="participanteComprobanteAdmin" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Método de pago</label>
+                            <select name="metodo_pago" class="form-select" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Transferencia">Transferencia Bancaria</option>
+                                <option value="Oxxo">Oxxo</option>
+                                <option value="Deposito">Depósito</option>
+                                <option value="Paypal">PayPal</option>
+                                <option value="Tarjeta">Tarjeta de Crédito/Débito</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Referencia de pago</label>
+                            <input type="text" name="referencia_pago" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Monto pagado</label>
+                            <input type="number" step="0.01" name="monto_pagado" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Comprobante</label>
+                            <input type="file" name="comprobante" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                            <small class="text-muted">Formatos aceptados: PDF, JPG, JPEG o PNG. Máximo 2MB.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="formComprobanteAdmin" class="btn btn-primary" id="btnSubirComprobanteAdmin">
+                        <i class="fas fa-upload"></i> Subir comprobante
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     $(document).ready(function() {
         $('.asignar-opcion').click(function() {
@@ -403,6 +463,124 @@ $stmtOpc->close();
                 }
             });
         });
+
+        $('.intercambiar-archivos').click(function () {
+            const idInscripcion = $(this).data('id');
+
+            Swal.fire({
+                title: '¿Intercambiar archivos?',
+                text: 'Se moverán el comprobante y el documento a la columna opuesta.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, intercambiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: 'gestion_inscripcion.php',
+                    type: 'POST',
+                    data: {
+                        accion: 'intercambiar_archivos',
+                        id_inscripcion: idInscripcion
+                    },
+                    dataType: 'json',
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire('Éxito', res.message, 'success');
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            Swal.fire('Error', res.message, 'error');
+                        }
+                    }
+                });
+            });
+        });
+
+        $(document).on('click', '.subir-comprobante-admin', function () {
+            $('#idInscripcionComprobanteAdmin').val($(this).data('id'));
+            $('#participanteComprobanteAdmin').val($(this).data('participante'));
+            $('#formComprobanteAdmin')[0].reset();
+            $('#idInscripcionComprobanteAdmin').val($(this).data('id'));
+            $('#participanteComprobanteAdmin').val($(this).data('participante'));
+            $('#modalComprobanteAdmin').modal('show');
+        });
+
+        $('#formComprobanteAdmin').submit(function (e) {
+            e.preventDefault();
+            const form = this;
+
+            Swal.fire({
+                title: '¿Continuar con carga aislada?',
+                text: 'Este comprobante será subido por el admin en nombre del participante. ¿Deseas continuar?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, continuar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const boton = $('#btnSubirComprobanteAdmin');
+                const textoOriginal = boton.html();
+
+                boton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Subiendo...');
+
+                $.ajax({
+                    url: 'gestion_inscripcion.php',
+                    type: 'POST',
+                    data: formData,
+                    dataType: 'json',
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire('Éxito', res.message, 'success');
+                            $('#modalComprobanteAdmin').modal('hide');
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            Swal.fire('Error', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Error', 'No se pudo subir el comprobante', 'error');
+                    },
+                    complete: function () {
+                        boton.prop('disabled', false).html(textoOriginal);
+                    }
+                });
+            });
+        });
+
+        $('.estatus-certificado').change(function () {
+            const select = $(this);
+
+            $.ajax({
+                url: 'gestion_inscripcion.php',
+                type: 'POST',
+                data: {
+                    accion: 'actualizar_estatus_certificado',
+                    id_inscripcion: select.data('id'),
+                    estatus_certificado: select.val()
+                },
+                dataType: 'json',
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire('Éxito', res.message, 'success');
+                        setTimeout(() => location.reload(), 800);
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Error', 'No se pudo actualizar el estatus de certificado', 'error');
+                }
+            });
+        });
     });
     
     function cambiarEstadoInscripcion(id, estado) {
@@ -444,7 +622,7 @@ new DataTable('#inscripcionesTable', {
     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
   }
 });
-  $('#modalComprobante, #modalOpcionPago, #modalNota').on('hide.bs.modal', function () {
+  $('#modalComprobante, #modalOpcionPago, #modalNota, #modalComprobanteAdmin').on('hide.bs.modal', function () {
     if (this.contains(document.activeElement)) {
         document.activeElement.blur();
     }

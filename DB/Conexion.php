@@ -351,18 +351,29 @@ class Database
                     <th>Monto</th>
                     <th>Comprobante</th>
                     <th>Documento</th>
+                    <th>Certificado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>';
 
+        $tieneEstatusCertificado = false;
+        $columnResult = $this->conn->query("SHOW COLUMNS FROM inscripciones LIKE 'estatus_certificado'");
+        if ($columnResult && $columnResult->num_rows > 0) {
+            $tieneEstatusCertificado = true;
+        }
+
         // Consulta mejorada para incluir comprobante_path
+        $estatusCertificadoSelect = $tieneEstatusCertificado
+            ? 'i.estatus_certificado'
+            : "'pendiente' AS estatus_certificado";
         $query = "SELECT 
                 i.id_inscripcion, 
                 i.id_curso,
                 i.id_participante,
                 i.IdOpcionPago as id_opcion_pago,
                 i.estado,
+                $estatusCertificadoSelect,
                 i.metodo_pago,
                 i.monto_pagado,
                 i.nota,
@@ -433,7 +444,7 @@ class Database
                         : '';
                     if ($row['comprobante_path']) {
                         $archivo = htmlspecialchars($row['comprobante_path']);
-                        $monto = htmlspecialchars($row['monto_pagado']);
+                        $monto = htmlspecialchars((string) ($row['monto_pagado'] ?? ''));
                         $fecha = htmlspecialchars($fechaPago);
                         $idInscripcion = (int) $row['id_inscripcion'];
                         $botonComprobante = "<button class=\"btn btn-sm btn-info\" onclick=\"verComprobante(" . $idInscripcion . ", '" . $archivo . "', '" . $monto . "', '" . $fecha . "')\"><i class=\"fas fa-file-invoice\"></i> Ver</button>";
@@ -446,16 +457,49 @@ class Database
                         // Pago único: mostrar monto pagado
                         $Pagopendiente = '<span class="text-warning" title="Pagos pendientes por validar"><i class="fas fa-exclamation-circle"></i></span> 1 por revisar';
                     } 
+                $estatusCertificado = $row['estatus_certificado'] ?: 'pendiente';
+                $certificadoLabels = [
+                    'pendiente' => 'Pendiente',
+                    'enviado' => 'Enviado',
+                    'problema' => 'Tiene problema',
+                    'reenviado' => 'Reenviado'
+                ];
+                $certificadoClases = [
+                    'pendiente' => 'bg-secondary',
+                    'enviado' => 'bg-success',
+                    'problema' => 'bg-danger',
+                    'reenviado' => 'bg-info'
+                ];
+                $certificadoLabel = $certificadoLabels[$estatusCertificado] ?? $estatusCertificado;
+                $certificadoClase = $certificadoClases[$estatusCertificado] ?? 'bg-secondary';
+
                 // Documento de estudios
                 $botonDocumento = $row['documento']
                     ? '<a href="../documentos/' . $row['documento'] . '" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-file"></i> Ver</a>'
                     : '<span class="text-danger">No subido</span>';
 
+                $puedeIntercambiarArchivos = isset($_SESSION['rol'])
+                    && (int) $_SESSION['rol'] === 3
+                    && empty($row['id_opcion_pago'])
+                    && (!empty($row['comprobante_path']) || !empty($row['documento']));
+
+                $puedeSubirComprobanteAdmin = isset($_SESSION['idAdmin'])
+                    && empty($row['id_opcion_pago'])
+                    && empty($row['comprobante_path']);
+
+                if ($puedeSubirComprobanteAdmin) {
+                    $botonComprobante = '<button class="btn btn-sm btn-dark subir-comprobante-admin" data-id="' . (int) $row['id_inscripcion'] . '" data-participante="' . htmlspecialchars($row["nombre_participante"] . ' ' . $row["apellido_participante"], ENT_QUOTES) . '" title="Subir comprobante como admin">
+                            <i class="fas fa-upload"></i> Subir
+                        </button>';
+                }
+
                 $html .= '
             <tr>
                 <td>' . $row["id_inscripcion"] . '</td>
                 <td>
-                    <strong>'. htmlspecialchars($row["titulo"]) . ' ' . htmlspecialchars($row["nombre_participante"]) . ' ' . htmlspecialchars($row["apellido_participante"]) . '</strong><br>
+                    <a href="resumen.php?id_participante=' . (int) $row['id_participante'] . '&id_curso=' . (int) $row['id_curso'] . '" class="text-decoration-none">
+                        <strong>'. htmlspecialchars($row["titulo"]) . ' ' . htmlspecialchars($row["nombre_participante"]) . ' ' . htmlspecialchars($row["apellido_participante"]) . '</strong>
+                    </a><br>
                      <small class="text-muted">' . $row["email_participante"] . '</small>
                     <small class="text-muted">' . $row["telefono_participante"] . '</small><hr>
                     <small class="text-muted">' . $row["id_participante"] . '</small>
@@ -483,6 +527,15 @@ class Database
                 $botonComprobante . '</td>
                 <td class="text-center">' . $botonDocumento . '</td>
                 <td class="text-center">
+                    <span class="badge ' . $certificadoClase . '">' . htmlspecialchars($certificadoLabel) . '</span>
+                    <select class="form-select form-select-sm mt-2 estatus-certificado" data-id="' . (int) $row['id_inscripcion'] . '" ' . (!$tieneEstatusCertificado ? 'disabled title="Ejecute la migración de estatus_certificado"' : '') . '>
+                        <option value="pendiente" ' . ($estatusCertificado === 'pendiente' ? 'selected' : '') . '>Pendiente</option>
+                        <option value="enviado" ' . ($estatusCertificado === 'enviado' ? 'selected' : '') . '>Enviado</option>
+                        <option value="problema" ' . ($estatusCertificado === 'problema' ? 'selected' : '') . '>Tiene problema</option>
+                        <option value="reenviado" ' . ($estatusCertificado === 'reenviado' ? 'selected' : '') . '>Reenviado</option>
+                    </select>
+                </td>
+                <td class="text-center">
                     <div class="btn-group btn-group-sm">
                         <button style="display: none;" class="btn btn-primary" onclick="editarInscripcion(' . $row['id_inscripcion'] . ')" title="Editar">
                             <i class="fas fa-edit"></i>
@@ -490,6 +543,12 @@ class Database
                         <button class="btn btn-info nota-btn" data-id="' . $row['id_inscripcion'] . '" data-nota="' . $row['nota'] . '" title="Nota">
                             <i class="fas fa-pen"></i>
                         </button>';
+
+                if ($puedeIntercambiarArchivos) {
+                    $html .= '<button class="btn btn-secondary intercambiar-archivos" data-id="' . $row['id_inscripcion'] . '" title="Intercambiar documento y comprobante">
+                            <i class="fas fa-retweet"></i>
+                        </button>';
+                }
 
                 if (!$row['id_opcion_pago'] || 1 == 1) {
                     $html .= '<button class="btn btn-success asignar-opcion" data-id="' . $row['id_inscripcion'] . '">
@@ -519,7 +578,7 @@ class Database
             </tr>';
             }
         } else {
-            $html .= '<tr><td colspan="8" class="text-center">No hay inscripciones registradas' . ($id_curso ? ' para este curso' : '') . '</td></tr>';
+            $html .= '<tr><td colspan="10" class="text-center">No hay inscripciones registradas' . ($id_curso ? ' para este curso' : '') . '</td></tr>';
         }
 
         $html .= '</tbody></table></div>';

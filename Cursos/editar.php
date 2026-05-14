@@ -138,4 +138,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const costoInput = document.getElementById('costo');
+    const requierePagoInput = document.getElementById('requiere_pago');
+
+    if (!costoInput || !requierePagoInput) {
+        return;
+    }
+
+    let costoEraPositivo = parseFloat(costoInput.value) > 0;
+
+    costoInput.addEventListener('input', function () {
+        const costoActual = parseFloat(costoInput.value) || 0;
+        const costoEsPositivo = costoActual > 0;
+
+        if (!costoEraPositivo && costoEsPositivo) {
+            requierePagoInput.checked = true;
+        }
+
+        costoEraPositivo = costoEsPositivo;
+    });
+});
+</script>
+
 <?php include '../Modulos/Footer.php'; ?>

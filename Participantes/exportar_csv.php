@@ -12,35 +12,65 @@ try {
     $conn = $database->getConnection();
 
     $query = $conn->prepare("
-SELECT 
-    i.id_inscripcion,
-    p.titulo,
-    p.nombre,
-    p.apellido,
-    p.email,
-    p.telefono,
-    p.documento AS comprobante_path,
-       COALESCE(
-                (
-                    SELECT SUM(IFNULL(ci.monto_pagado, 0))
-                    FROM comprobantes_inscripcion ci
-                    WHERE ci.validado = 1
-                      AND ci.id_inscripcion = i.id_inscripcion
-                ),
-                IFNULL(i.monto_pagado, 0)
-            ) AS monto_validado
-FROM inscripciones i
-JOIN participantes p ON i.id_participante = p.id_participante
-JOIN cursos c ON i.id_curso = c.id_curso
-LEFT JOIN opciones_pago op ON i.IdOpcionPago = op.id_opcion
-WHERE i.id_curso = ?
-  AND (i.estado = 'pago_validado' OR i.estado = 'pagos programados' OR i.estado = 'Revision de pago')
-  AND p.email IS NOT NULL
-  AND p.email <> ''
+        SELECT
+            ci.id_comprobante,
+            i.id_inscripcion,
+            p.titulo,
+            p.nombre,
+            p.apellido,
+            p.email,
+            p.telefono,
+            ci.numero_pago,
+            ci.metodo_pago,
+            ci.referencia_pago,
+            ci.monto_pagado,
+            ci.fecha_carga,
+            ci.validado,
+            ci.comprobante_path
+        FROM comprobantes_inscripcion ci
+        JOIN inscripciones i ON ci.id_inscripcion = i.id_inscripcion
+        JOIN participantes p ON i.id_participante = p.id_participante
+        WHERE i.id_curso = ?
+          AND p.email IS NOT NULL
+          AND p.email <> ''
+          AND ci.comprobante_path IS NOT NULL
+          AND ci.comprobante_path <> ''
 
+        UNION ALL
+
+        SELECT
+            NULL AS id_comprobante,
+            i.id_inscripcion,
+            p.titulo,
+            p.nombre,
+            p.apellido,
+            p.email,
+            p.telefono,
+            1 AS numero_pago,
+            i.metodo_pago,
+            i.referencia_pago,
+            i.monto_pagado,
+            i.fecha_cambio_estado AS fecha_carga,
+            CASE WHEN i.estado = 'pago_validado' THEN 1 ELSE 0 END AS validado,
+            i.comprobante_path
+        FROM inscripciones i
+        JOIN participantes p ON i.id_participante = p.id_participante
+        WHERE i.id_curso = ?
+          AND p.email IS NOT NULL
+          AND p.email <> ''
+          AND i.comprobante_path IS NOT NULL
+          AND i.comprobante_path <> ''
+          AND NOT EXISTS (
+              SELECT 1
+              FROM comprobantes_inscripcion ci2
+              WHERE ci2.id_inscripcion = i.id_inscripcion
+                AND ci2.comprobante_path IS NOT NULL
+                AND ci2.comprobante_path <> ''
+          )
+        ORDER BY id_inscripcion, numero_pago
     ");
 
-    $query->bind_param('i', $id_curso);
+    $query->bind_param('ii', $id_curso, $id_curso);
     $query->execute();
     $result = $query->get_result();
 
@@ -50,38 +80,39 @@ WHERE i.id_curso = ?
 
     // Encabezados
     // Encabezados en el Excel
-    $headers = ['ID Inscripción', 'Título', 'Nombre', 'Apellido', 'Correo', 'Celular', 'Comprobante', 'Monto Validado'];
+    $headers = ['ID Comprobante', 'ID Inscripción', 'Título', 'Nombre', 'Apellido', 'Correo', 'Celular', 'Número de Pago', 'Método', 'Referencia', 'Fecha', 'Estado Comprobante', 'Comprobante', 'Monto Pagado'];
     $sheet->fromArray($headers, NULL, 'A1');
 
     $rowNum = 2;
     while ($row = $result->fetch_assoc()) {
-        $sheet->setCellValue("A{$rowNum}", $row['id_inscripcion']);
-        $sheet->setCellValue("B{$rowNum}", $row['titulo']);
-        $sheet->setCellValue("C{$rowNum}", $row['nombre']);
-        $sheet->setCellValue("D{$rowNum}", $row['apellido']);
-        $sheet->setCellValue("E{$rowNum}", $row['email']);
-        $sheet->setCellValue("F{$rowNum}", $row['telefono']);
+        $estadoComprobante = [
+            0 => 'Pendiente',
+            1 => 'Correcto',
+            3 => 'Rechazado'
+        ];
+
+        $sheet->setCellValue("A{$rowNum}", $row['id_comprobante']);
+        $sheet->setCellValue("B{$rowNum}", $row['id_inscripcion']);
+        $sheet->setCellValue("C{$rowNum}", $row['titulo']);
+        $sheet->setCellValue("D{$rowNum}", $row['nombre']);
+        $sheet->setCellValue("E{$rowNum}", $row['apellido']);
+        $sheet->setCellValue("F{$rowNum}", $row['email']);
+        $sheet->setCellValue("G{$rowNum}", $row['telefono']);
+        $sheet->setCellValue("H{$rowNum}", $row['numero_pago']);
+        $sheet->setCellValue("I{$rowNum}", $row['metodo_pago']);
+        $sheet->setCellValue("J{$rowNum}", $row['referencia_pago']);
+        $sheet->setCellValue("K{$rowNum}", $row['fecha_carga']);
+        $sheet->setCellValue("L{$rowNum}", $estadoComprobante[(int) $row['validado']] ?? 'Desconocido');
 
         if ($row['comprobante_path']) {
-            $url = "https://cursos.clinicacerene.com/documentos/" . $row['comprobante_path'];
-            $sheet->setCellValue("G{$rowNum}", 'Ver comprobante');
-            $sheet->getCell("G{$rowNum}")->getHyperlink()->setUrl($url);
-            $sheet->getStyle("G{$rowNum}")->getFont()->getColor()->setARGB('FF0000FF');
-            $sheet->getStyle("G{$rowNum}")->getFont()->setUnderline(true);
-        } else {
-            $sheet->setCellValue("F{$rowNum}", 'faltante');
-
-            // Fondo amarillo a toda la fila si falta comprobante
-            $sheet->getStyle("A{$rowNum}:F{$rowNum}")->applyFromArray([
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'color' => ['rgb' => 'FFFACD']
-                ]
-            ]);
+            $url = "https://cursos.clinicacerene.com/comprobantes/" . $row['comprobante_path'];
+            $sheet->setCellValue("M{$rowNum}", 'Ver comprobante');
+            $sheet->getCell("M{$rowNum}")->getHyperlink()->setUrl($url);
+            $sheet->getStyle("M{$rowNum}")->getFont()->getColor()->setARGB('FF0000FF');
+            $sheet->getStyle("M{$rowNum}")->getFont()->setUnderline(true);
         }
-        $sheet->setCellValue("H{$rowNum}", $row['monto_validado']);
-         // Formatear columna H como moneda
-        $sheet->getStyle("H{$rowNum}")->getNumberFormat()->setFormatCode('$#,##0.00');
+        $sheet->setCellValue("N{$rowNum}", $row['monto_pagado']);
+        $sheet->getStyle("N{$rowNum}")->getNumberFormat()->setFormatCode('$#,##0.00');
 
         $rowNum++;
     }

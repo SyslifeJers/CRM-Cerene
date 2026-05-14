@@ -4,14 +4,14 @@ if (!isset($_SESSION['participante_id'])) {
   header("Location: login.php");
   exit();
 }
-$clave_curso = $_GET['clave'] ?? null;
+
+$clave_curso = $_GET['clave'] ?? '';
 include '../Modulos/HeadP.php';
 
-// Obtener información del participante y sus inscripciones
 require_once '../DB/Conexion.php';
 $database = new Database();
-
 $participante_id = $_SESSION['participante_id'];
+
 $query = "SELECT i.id_inscripcion, i.IdOpcionPago as id_opcion_pago, c.clave_curso, c.nombre_curso, i.estado, i.fecha_inscripcion,
                  COALESCE((SELECT SUM(monto_pagado)
                            FROM comprobantes_inscripcion ci
@@ -19,161 +19,455 @@ $query = "SELECT i.id_inscripcion, i.IdOpcionPago as id_opcion_pago, c.clave_cur
                              AND ci.id_inscripcion = i.id_inscripcion), 0) AS total_pagado
           FROM inscripciones i
           JOIN cursos c ON i.id_curso = c.id_curso
-          WHERE i.id_participante = ?";
+          WHERE i.id_participante = ?
+          ORDER BY i.fecha_inscripcion DESC";
 $stmt = $database->getConnection()->prepare($query);
 $stmt->bind_param("i", $participante_id);
 $stmt->execute();
 $result = $stmt->get_result();
+$inscripciones = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
-// Obtener cédula y documento del participante
 $stmtCedula = $database->getConnection()->prepare("SELECT cedula, documento FROM participantes WHERE id_participante = ?");
 $stmtCedula->bind_param("i", $participante_id);
 $stmtCedula->execute();
 $stmtCedula->bind_result($cedula, $documento);
 $stmtCedula->fetch();
 $stmtCedula->close();
+
+$totalCursos = count($inscripciones);
+$cursosActivos = 0;
+$pendientesPago = 0;
+foreach ($inscripciones as $inscripcion) {
+  if ($inscripcion['estado'] == 'pago_validado' || (float) $inscripcion['total_pagado'] > 0) {
+    $cursosActivos++;
+  }
+  if ($inscripcion['estado'] == 'registrado' || $inscripcion['estado'] == 'Revision de pago' || $inscripcion['estado'] == 'pagos programados') {
+    $pendientesPago++;
+  }
+}
+
+function estadoCursoParticipante($estado) {
+  $estados = [
+    'pago_validado' => ['success', 'Acceso liberado'],
+    'registrado' => ['warning', 'Pago/documentación pendiente'],
+    'Revision de pago' => ['info', 'Pago en revisión'],
+    'pagos programados' => ['info', 'Pagos programados'],
+    'comprobante_enviado' => ['info', 'Comprobante enviado'],
+    'rechazado' => ['danger', 'Requiere atención']
+  ];
+
+  return $estados[$estado] ?? ['secondary', ucfirst(str_replace('_', ' ', $estado))];
+}
 ?>
 
-<div class="row">
-  <div class="col-md-12">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="card-title">Mi Panel - <?= htmlspecialchars($_SESSION['nombre']) ?></h4>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-8">
-            <h5>Mis Inscripciones</h5>
-            <div class="table-responsive">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Curso</th>
-                    <th>Acciones</th>
-                    <th>Fecha Inscripción</th>
-                    <th>Estado</th>
-                    
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php while ($row = $result->fetch_assoc()): ?>
-                    <tr>
-                      <td><?= htmlspecialchars($row['nombre_curso']) ?></td>
-                                            <td>
-                        <?php if ($row['id_opcion_pago'] && ($row['estado'] == 'registrado' || $row['estado'] == 'pagos programados' || $row['estado'] == 'Revision de pago')): ?>
-                          <a href="pagos.php?id=<?= $row['id_inscripcion'] ?>" class="btn btn-sm btn-primary">
-                            <i class="fas fa-receipt"></i> Ver pagos
-                          </a>
-                        <?php endif; ?>
-                        <?php
-                        if ($row['estado'] == 'registrado' && empty($row['id_opcion_pago'])): ?>
-                          <button class="btn btn-sm btn-primary open-modal"
-                            data-inscripcion="<?= $row['id_inscripcion'] ?>"
-                            data-curso="<?= htmlspecialchars($row['nombre_curso']) ?>">
-                            <i class="fas fa-upload"></i> Subir comprobante
-                          </button>
+<style>
+  .panel-hero {
+    background: linear-gradient(135deg, #12386b 0%, #177dff 100%);
+    border-radius: 18px;
+    color: #fff;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
 
-                        <?php endif; ?>
-                        <?php if ($row['estado'] == 'pago_validado' || $row['total_pagado'] > 0): ?>
-                          <a href="curso/contenido.php?clave=<?= $row['clave_curso'] ?>" class="btn btn-sm btn-primary">
+  .panel-hero h2 {
+    color: #fff;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
 
-                            Ir al Curso
-                          </a>
+  .quick-stat {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 14px;
+    padding: 14px 16px;
+    min-height: 92px;
+  }
 
-                        <?php endif; ?>
-                      </td>
-                      <td><?= date('d/m/Y', strtotime($row['fecha_inscripcion'])) ?></td>
-                      <td>
-                        <span class="badge badge-<?=
-                                                  $row['estado'] == 'pago_validado' ? 'success' : ($row['estado'] == 'registrado' ? 'warning' : 'secondary')
-                                                  ?>">
-                          <?= ucfirst(str_replace('_', ' ', $row['estado'])) ?>
-                        </span>
-                      </td>
+  .quick-stat strong {
+    display: block;
+    color: #fff;
+    font-size: 1.8rem;
+    line-height: 1;
+  }
 
-                    </tr>
-                  <?php endwhile; ?>
-                </tbody>
-              </table>
-            </div>
+  .section-card {
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(17, 38, 60, 0.08);
+  }
+
+  .section-card .card-header {
+    background: #fff;
+    border-bottom: 1px solid #eef1f6;
+    border-radius: 16px 16px 0 0;
+    padding: 18px 20px;
+  }
+
+  .course-card {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #eef1f6;
+    border-radius: 0;
+    margin: 0;
+    padding: 16px 0;
+  }
+
+  .course-card:last-child {
+    border-bottom: 0;
+  }
+
+  .course-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .document-callout {
+    border: 1px solid #d8e7ff;
+    border-left: 5px solid #177dff;
+    border-radius: 14px;
+    background: #f4f9ff;
+  }
+
+  .document-callout.document-missing {
+    border-color: #ffe0a3;
+    border-left-color: #ffa534;
+    background: #fff8eb;
+  }
+
+  .document-upload-box {
+    border: 1px dashed #b7c7dc;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fbfdff;
+  }
+
+  .course-key-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  }
+
+  .course-key-icon {
+    align-items: center;
+    background: #eaf3ff;
+    border-radius: 14px;
+    color: #177dff;
+    display: inline-flex;
+    font-size: 1.35rem;
+    height: 44px;
+    justify-content: center;
+    margin-bottom: 12px;
+    width: 44px;
+  }
+
+  .course-key-help {
+    background: #fff;
+    border: 1px solid #eef1f6;
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .helper-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+
+  .modal-comprobante {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.55);
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .modal-comprobante-content {
+    background-color: #fff;
+    margin: 6% auto;
+    padding: 24px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.2);
+  }
+
+  .close-modal {
+    color: #6c757d;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .close-modal:hover {
+    color: #111;
+  }
+
+  @media (max-width: 767px) {
+    .panel-hero {
+      padding: 20px;
+    }
+
+    .course-card {
+      padding: 14px;
+    }
+
+    .course-actions .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="panel-hero">
+  <div class="row align-items-center">
+    <div class="col-lg-7 mb-3 mb-lg-0">
+      <h2>Mi Panel</h2>
+      <p class="mb-0">Hola, <?= htmlspecialchars($_SESSION['nombre']) ?>. Aquí puedes revisar tus cursos, pagos y subir tu documento de estudios.</p>
+    </div>
+    <div class="col-lg-5">
+      <div class="row">
+        <div class="col-4">
+          <div class="quick-stat">
+            <strong><?= $totalCursos ?></strong>
+            <span>Cursos inscritos</span>
           </div>
-
-          <div class="col-md-4">
-            <div class="card">
-              <div class="card-header">
-                <h5>Mi Perfil</h5>
-              </div>
-              <div class="card-body">
-                <p><strong>Nombre:</strong> <?= htmlspecialchars($_SESSION['nombre']) ?></p>
-                <p><strong>Email:</strong> <?= htmlspecialchars($_SESSION['email']) ?></p>
-                <p class="d-flex align-items-center"><strong class="me-2">Cédula profesional:</strong>
-                  <input type="password" id="cedulaInput" class="form-control-plaintext me-2" value="<?= htmlspecialchars($cedula) ?>" readonly style="width:auto;">
-                  <button type="button" id="toggleCedula" class="btn btn-link p-0"><i class="fas fa-eye"></i></button>
-                </p>
-                <a href="mi_perfil.php" class="btn btn-primary">Mi perfil</a>
-                <hR>
-                <a href="logout.php" class="btn btn-danger">Cerrar Sesión</a>
-              </div>
-            </div>
+        </div>
+        <div class="col-4">
+          <div class="quick-stat">
+            <strong><?= $cursosActivos ?></strong>
+            <span>Con acceso</span>
           </div>
-          <div class="card col-lg-4 mb-4">
-            <div class="card-header">
-              <h5>Agregar Nuevo Curso</h5>
-            </div>
-            <div class="card-body">
-              <form id="formAgregarCurso" class="form-inline">
-                <div class="form-group mx-sm-3 mb-2">
-                  <label for="claveCurso" class="sr-only">Clave del Curso</label>
-                  <input type="text" class="form-control" value="<?php echo $clave_curso; ?>" id="claveCurso" placeholder="Ingresa la clave del curso" required>
-                </div>
-                <button type="submit" class="btn btn-primary mb-2">
-                  <i class="fas fa-plus"></i> Agregar Curso
-                </button>
-              </form>
-          <div id="mensajeClave" class="mt-2"></div>
         </div>
-      </div>
-      <div class="card col-lg-4 mb-4">
-        <div class="card-header">
-          <h5>Documento de Estudios</h5>
-        </div>
-        <div class="card-body">
-          <?php if ($documento): ?>
-            <a href="../documentos/<?= htmlspecialchars($documento) ?>" target="_blank" class="btn btn-info mb-2">
-              <i class="fas fa-file"></i> Ver Documento
-            </a>
-            <p>Si deseas reemplazarlo, sube uno nuevo.</p>
-          <?php else: ?>
-            <div class="alert alert-warning">Es importante subir tu documento.</div>
-          <?php endif; ?>
-          <form id="formDocumento" enctype="multipart/form-data">
-            <input type="file" name="documento" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required>
-            <button type="submit" class="btn btn-primary mt-2">Subir documento</button>
-          </form>
-          <div id="msgDocumento" class="mt-2"></div>
+        <div class="col-4">
+          <div class="quick-stat">
+            <strong><?= $documento ? 'Sí' : 'No' ?></strong>
+            <span>Documento</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<?php if (!$documento): ?>
+<div class="row mb-4">
+  <div class="col-lg-8 mb-4 mb-lg-0">
+    <div class="card section-card document-callout <?= $documento ? '' : 'document-missing' ?>">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-7 mb-3 mb-md-0">
+            <h4 class="mb-2"><i class="fas fa-file-upload me-2"></i> Documento que acredita tus estudios</h4>
+            <p class="mb-2">Sube tu título, constancia, certificado o documento académico. Este archivo ayuda a validar tu perfil dentro de los cursos.</p>
+            <?php if ($documento): ?>
+              <a href="../documentos/<?= htmlspecialchars($documento) ?>" target="_blank" class="btn btn-info btn-sm">
+                <i class="fas fa-file"></i> Ver documento actual
+              </a>
+              <span class="helper-text ms-2">Puedes reemplazarlo cuando lo necesites.</span>
+            <?php else: ?>
+              <div class="alert alert-warning mb-0 py-2">Aún no has subido este documento.</div>
+            <?php endif; ?>
+          </div>
+          <div class="col-md-5">
+            <form id="formDocumento" class="document-upload-box" enctype="multipart/form-data">
+              <label class="fw-bold">Seleccionar archivo</label>
+              <input type="file" name="documento" class="form-control-file mb-2" accept=".pdf,.jpg,.jpeg,.png" required>
+              <small class="form-text text-muted mb-3">Formatos aceptados: PDF, JPG, PNG. Máximo 2MB.</small>
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-cloud-upload-alt"></i> Subir documento
+              </button>
+            </form>
+            <div id="msgDocumento" class="mt-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card section-card course-key-card h-100">
+      <div class="card-header">
+        <h5 class="mb-0">Agregar un curso con clave</h5>
+      </div>
+      <div class="card-body">
+        <div class="course-key-icon">
+          <i class="fas fa-key"></i>
+        </div>
+        <p class="mb-2">¿Te compartieron una clave de inscripción?</p>
+        <p class="helper-text">Escríbela aquí para que el curso aparezca en tu lista y puedas continuar con el pago o acceso correspondiente.</p>
+        <div class="course-key-help mb-3">
+          <div class="helper-text mb-1"><strong>1.</strong> Copia la clave que recibiste.</div>
+          <div class="helper-text mb-1"><strong>2.</strong> Pégala en el campo de abajo.</div>
+          <div class="helper-text"><strong>3.</strong> Presiona <strong>Agregar Curso</strong>.</div>
+        </div>
+        <form id="formAgregarCurso">
+          <div class="form-group">
+            <label for="claveCurso" class="fw-bold">Clave de inscripción</label>
+            <input type="text" class="form-control form-control-lg" value="<?= htmlspecialchars($clave_curso) ?>" id="claveCurso" placeholder="Pega aquí tu clave" required>
+            <small class="form-text text-muted">Ejemplo: CERENE-2026 o ABC123.</small>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg w-100">
+            <i class="fas fa-plus-circle"></i> Agregar curso a mi panel
+          </button>
+        </form>
+        <div id="mensajeClave" class="mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
+<div class="row">
+  <div class="col-lg-8 mb-4">
+    <div class="card section-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h4 class="card-title mb-1">Mis cursos</h4>
+          <p class="helper-text mb-0">Cada renglón muestra qué hacer: pagar, revisar pagos o entrar al curso.</p>
+        </div>
+        <?php if ($pendientesPago > 0): ?>
+          <span class="badge bg-warning"><?= $pendientesPago ?> pendiente(s)</span>
+        <?php endif; ?>
+      </div>
+      <div class="card-body">
+        <?php if (empty($inscripciones)): ?>
+          <div class="alert alert-info mb-0">Aún no tienes cursos inscritos. Agrega uno usando la clave del curso.</div>
+        <?php else: ?>
+          <?php foreach ($inscripciones as $row): ?>
+            <?php [$badge, $estadoLabel] = estadoCursoParticipante($row['estado']); ?>
+            <div class="course-card">
+              <div class="row align-items-center">
+                <div class="col-md-7 mb-3 mb-md-0">
+                  <h5 class="mb-2"><?= htmlspecialchars($row['nombre_curso']) ?></h5>
+                  <div class="helper-text mb-2">
+                    <i class="far fa-calendar-alt"></i> Inscripción: <?= date('d/m/Y', strtotime($row['fecha_inscripcion'])) ?>
+                  </div>
+                  <span class="badge bg-<?= $badge ?>"><?= htmlspecialchars($estadoLabel) ?></span>
+                  <?php if ((float) $row['total_pagado'] > 0): ?>
+                    <span class="badge bg-success ms-1">Pago registrado</span>
+                  <?php endif; ?>
+                </div>
+                <div class="col-md-5">
+                  <div class="course-actions justify-content-md-end">
+                    <?php if ($row['id_opcion_pago'] && ($row['estado'] == 'registrado' || $row['estado'] == 'pagos programados' || $row['estado'] == 'Revision de pago')): ?>
+                      <a href="pagos.php?id=<?= (int) $row['id_inscripcion'] ?>" class="btn btn-sm btn-primary">
+                        <i class="fas fa-receipt"></i> Ver pagos
+                      </a>
+                    <?php endif; ?>
+
+                    <?php if ($row['estado'] == 'registrado' && empty($row['id_opcion_pago'])): ?>
+                      <button class="btn btn-sm btn-primary open-modal"
+                        data-inscripcion="<?= (int) $row['id_inscripcion'] ?>"
+                        data-curso="<?= htmlspecialchars($row['nombre_curso'], ENT_QUOTES) ?>">
+                        <i class="fas fa-upload"></i> Subir comprobante
+                      </button>
+                    <?php endif; ?>
+
+                    <?php if ($row['estado'] == 'pago_validado' || (float) $row['total_pagado'] > 0): ?>
+                      <a href="curso/contenido.php?clave=<?= urlencode($row['clave_curso']) ?>" class="btn btn-sm btn-success">
+                        <i class="fas fa-play-circle"></i> Ir al curso
+                      </a>
+                    <?php endif; ?>
+
+                    <?php if ($row['estado'] == 'Revision de pago' || $row['estado'] == 'comprobante_enviado'): ?>
+                      <span class="helper-text">Tu comprobante está en revisión.</span>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </div>
+    </div>
+
+    <?php if ($documento): ?>
+      <div class="card section-card document-callout mt-4">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-7 mb-3 mb-md-0">
+              <h4 class="mb-2"><i class="fas fa-file-alt me-2"></i> Documento de estudios</h4>
+              <p class="mb-2">Tu documento ya está cargado. Si necesitas actualizarlo, puedes subir uno nuevo aquí.</p>
+              <a href="../documentos/<?= htmlspecialchars($documento) ?>" target="_blank" class="btn btn-info btn-sm">
+                <i class="fas fa-file"></i> Ver documento actual
+              </a>
+            </div>
+            <div class="col-md-5">
+              <form id="formDocumento" class="document-upload-box" enctype="multipart/form-data">
+                <label class="fw-bold">Reemplazar documento</label>
+                <input type="file" name="documento" class="form-control-file mb-2" accept=".pdf,.jpg,.jpeg,.png" required>
+                <small class="form-text text-muted mb-3">Formatos aceptados: PDF, JPG, PNG. Máximo 2MB.</small>
+                <button type="submit" class="btn btn-outline-primary w-100">
+                  <i class="fas fa-sync-alt"></i> Actualizar documento
+                </button>
+              </form>
+              <div id="msgDocumento" class="mt-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <div class="col-lg-4 mb-4">
+    <?php if ($documento): ?>
+      <div class="card section-card course-key-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Agregar un curso con clave</h5>
+        </div>
+        <div class="card-body">
+          <div class="course-key-icon">
+            <i class="fas fa-key"></i>
+          </div>
+          <p class="mb-2">¿Te compartieron una clave de inscripción?</p>
+          <p class="helper-text">Pégala aquí para agregar el curso a tu panel.</p>
+          <form id="formAgregarCurso">
+            <div class="form-group">
+              <label for="claveCurso" class="fw-bold">Clave de inscripción</label>
+              <input type="text" class="form-control form-control-lg" value="<?= htmlspecialchars($clave_curso) ?>" id="claveCurso" placeholder="Pega aquí tu clave" required>
+              <small class="form-text text-muted">Ejemplo: CERENE-2026 o ABC123.</small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg w-100">
+              <i class="fas fa-plus-circle"></i> Agregar curso
+            </button>
+          </form>
+          <div id="mensajeClave" class="mt-2"></div>
+        </div>
+      </div>
+    <?php endif; ?>
+
+    <div class="card section-card">
+      <div class="card-header">
+        <h5 class="mb-0">Mi Perfil</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Nombre:</strong><br><?= htmlspecialchars($_SESSION['nombre']) ?></p>
+        <p><strong>Email:</strong><br><?= htmlspecialchars($_SESSION['email']) ?></p>
+        <div class="mb-3">
+          <strong>Cédula profesional:</strong>
+          <div class="d-flex align-items-center mt-1">
+            <input type="password" id="cedulaInput" class="form-control-plaintext me-2" value="<?= htmlspecialchars($cedula) ?>" readonly>
+            <button type="button" id="toggleCedula" class="btn btn-link p-0" title="Mostrar/ocultar cédula"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <a href="mi_perfil.php" class="btn btn-primary w-100 mb-2">Mi perfil</a>
+        <a href="logout.php" class="btn btn-outline-danger w-100">Cerrar sesión</a>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Modal para subir comprobante -->
-<?php
-$result->data_seek(0); // Reiniciar el puntero del resultado
-while ($row = $result->fetch_assoc()):
-  if ($row['estado'] == 'registrado'):
-?>
-    <!-- Elimina los modales PHP y reemplaza con este código al final del archivo, antes del footer -->
-    <div id="modalComprobante" class="modal">
-      <div class="modal-content" style="width:90%;max-width:500px;margin:10% auto;">
-      <span class="close-modal">&times;</span>
-      <h3 id="modalTitle"></h3>
-      <form id="formComprobante" enctype="multipart/form-data">
-        <input type="hidden" id="idInscripcion" name="id_inscripcion">
+<div id="modalComprobante" class="modal-comprobante">
+  <div class="modal-comprobante-content">
+    <span class="close-modal">&times;</span>
+    <h3 id="modalTitle" class="mb-3"></h3>
+    <form id="formComprobante" enctype="multipart/form-data">
+      <input type="hidden" id="idInscripcion" name="id_inscripcion">
 
-        <div class="form-group">
+      <div class="form-group">
         <label>Método de Pago</label>
         <select name="metodo_pago" class="form-control" required>
           <option value="">Seleccionar...</option>
@@ -183,234 +477,177 @@ while ($row = $result->fetch_assoc()):
           <option value="Paypal">PayPal</option>
           <option value="Tarjeta">Tarjeta de Crédito/Débito</option>
         </select>
-        </div>
+      </div>
 
-        <div class="form-group">
+      <div class="form-group">
         <label>Referencia de Pago</label>
         <input type="text" name="referencia_pago" class="form-control" required>
-        </div>
+      </div>
 
-        <div class="form-group">
+      <div class="form-group">
         <label>Monto Pagado</label>
         <input type="number" step="0.01" name="monto_pagado" class="form-control" required>
-        </div>
+      </div>
 
-        <div class="form-group">
+      <div class="form-group">
         <label>Comprobante (PDF/Imagen)</label>
         <input type="file" name="comprobante" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png" required>
-        <small class="form-text text-muted">Formatos aceptados: PDF, JPG, PNG (Máx. 2MB)</small>
-        </div>
+        <small class="form-text text-muted">Formatos aceptados: PDF, JPG, PNG. Máximo 2MB.</small>
+      </div>
 
-        <div class="form-group text-right">
+      <div class="form-group text-right mb-0">
         <button type="button" class="btn btn-sm btn-secondary close-modal">Cancelar</button>
         <button type="submit" class="btn btn-sm btn-primary">Enviar Comprobante</button>
-        </div>
-      </form>
       </div>
-    </div>
-    <style>
-      @media (max-width: 600px) {
-      .modal-content {
-        width: 98% !important;
-        max-width: 98vw !important;
-        margin: 20% auto !important;
-        padding: 10px !important;
-      }
-      }
-    </style>
+    </form>
+  </div>
+</div>
 
-    <style>
-      .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-      }
-
-      .modal-content {
-        background-color: #fefefe;
-        margin: 10% auto;
-        padding: 20px;
-        border-radius: 5px;
-        width: 50%;
-        max-width: 600px;
-      }
-
-      .close-modal {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-      }
-
-      .close-modal:hover {
-        color: black;
-      }
-    </style>
-
-    <script>
-      // Manejo del modal con JavaScript
-      document.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('modalComprobante');
-        const modalTitle = document.getElementById('modalTitle');
-        const form = document.getElementById('formComprobante');
-
-        // Botones para abrir modal (deben tener clase 'open-modal' y data-inscripcion y data-curso)
-        document.querySelectorAll('.open-modal').forEach(button => {
-          button.addEventListener('click', function() {
-            const cursoNombre = this.getAttribute('data-curso');
-            const inscripcionId = this.getAttribute('data-inscripcion');
-
-            modalTitle.textContent = `Subir comprobante para ${cursoNombre}`;
-            document.getElementById('idInscripcion').value = inscripcionId;
-            modal.style.display = 'block';
-          });
-        });
-
-        // Cerrar modal
-        document.querySelectorAll('.close-modal').forEach(button => {
-          button.addEventListener('click', function() {
-            modal.style.display = 'none';
-          });
-        });
-
-        // Cerrar al hacer clic fuera del modal
-        window.addEventListener('click', function(event) {
-          if (event.target === modal) {
-            modal.style.display = 'none';
-          }
-        });
-
-        // Envío del formulario con Fetch API
-        form.addEventListener('submit', function(e) {
-          e.preventDefault();
-
-          const formData = new FormData(this);
-          const submitBtn = this.querySelector('button[type="submit"]');
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-
-          fetch('subir_comprobante.php', {
-              method: 'POST',
-              body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-              if (data.success) {
-                alert(data.message);
-                window.location.reload();
-              } else {
-                alert('Error: ' + data.message);
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Enviar Comprobante';
-              }
-            })
-            .catch(error => {
-              console.error('Error:', error);
-              alert('Error al enviar el formulario');
-              submitBtn.disabled = false;
-              submitBtn.innerHTML = 'Enviar Comprobante';
-            });
-        });
-      });
-    </script>
-<?php
-  endif;
-endwhile;
-?>
 <script>
-  document.getElementById('formAgregarCurso').addEventListener('submit', function(e) {
-    e.preventDefault();
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('modalComprobante');
+    const modalTitle = document.getElementById('modalTitle');
+    const formComprobante = document.getElementById('formComprobante');
+    const formAgregarCurso = document.getElementById('formAgregarCurso');
+    const formDocumento = document.getElementById('formDocumento');
+    const toggleCedula = document.getElementById('toggleCedula');
 
-    const clave = document.getElementById('claveCurso').value.trim();
-    const mensajeDiv = document.getElementById('mensajeClave');
-    const boton = this.querySelector('button[type="submit"]');
+    document.querySelectorAll('.open-modal').forEach(button => {
+      button.addEventListener('click', function() {
+        const cursoNombre = this.getAttribute('data-curso');
+        const inscripcionId = this.getAttribute('data-inscripcion');
 
-    if (!clave) {
-      mensajeDiv.innerHTML = '<div class="alert alert-warning">Por favor ingresa una clave</div>';
-      return;
-    }
+        modalTitle.textContent = `Subir comprobante para ${cursoNombre}`;
+        document.getElementById('idInscripcion').value = inscripcionId;
+        modal.style.display = 'block';
+      });
+    });
 
-    // Deshabilitar botón durante la solicitud
-    boton.disabled = true;
-    boton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+    document.querySelectorAll('.close-modal').forEach(button => {
+      button.addEventListener('click', function() {
+        modal.style.display = 'none';
+      });
+    });
 
-    fetch('agregar_curso.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clave_curso: clave
+    window.addEventListener('click', function(event) {
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+
+    formComprobante.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const submitBtn = this.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+      fetch('subir_comprobante.php', {
+          method: 'POST',
+          body: formData
         })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          mensajeDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-          // Recargar la página después de 2 segundos
-          setTimeout(() => {
-            // Obtiene la URL actual sin parámetros GET
-            const nuevaURL = window.location.pathname;
-            // Redirige sin recargar (reemplaza el estado del historial)
-            window.history.replaceState({}, document.title, nuevaURL);
-            // Luego recarga la página
-            window.location.reload();
-          }, 2000);
-        } else {
-          mensajeDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-        }
-      })
-      .catch(error => {
-        mensajeDiv.innerHTML = '<div class="alert alert-danger">Error en la conexión</div>';
-      })
-      .finally(() => {
-        boton.disabled = false;
-        boton.innerHTML = '<i class="fas fa-plus"></i> Agregar Curso';
-      });
-  });
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            Swal.fire('Éxito', data.message, 'success').then(() => window.location.reload());
+          } else {
+            Swal.fire('Error', data.message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Enviar Comprobante';
+          }
+        })
+        .catch(() => {
+          Swal.fire('Error', 'Error al enviar el formulario', 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Enviar Comprobante';
+        });
+    });
 
-  // Subir documento de estudios
-  document.getElementById('formDocumento').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const btn = this.querySelector('button[type="submit"]');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
-    fetch('subir_documento.php', { method: 'POST', body: formData })
-      .then(r => r.json())
-      .then(d => {
-        const div = document.getElementById('msgDocumento');
-        div.innerHTML = `<div class="alert alert-${d.success ? 'success' : 'danger'}">${d.message}</div>`;
-        if (d.success) setTimeout(() => location.reload(), 1000);
-      })
-      .catch(() => {
-        document.getElementById('msgDocumento').innerHTML = '<div class="alert alert-danger">Error en la conexión</div>';
-      })
-      .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = 'Subir documento';
-      });
-  });
+    formAgregarCurso.addEventListener('submit', function(e) {
+      e.preventDefault();
 
-  // Mostrar/ocultar cédula
-  document.getElementById('toggleCedula').addEventListener('click', function() {
-    const input = document.getElementById('cedulaInput');
-    const icon = this.querySelector('i');
-    if (input.type === 'password') {
-      input.type = 'text';
-      icon.classList.remove('fa-eye');
-      icon.classList.add('fa-eye-slash');
-    } else {
-      input.type = 'password';
-      icon.classList.remove('fa-eye-slash');
-      icon.classList.add('fa-eye');
-    }
+      const clave = document.getElementById('claveCurso').value.trim();
+      const mensajeDiv = document.getElementById('mensajeClave');
+      const boton = this.querySelector('button[type="submit"]');
+
+      if (!clave) {
+        mensajeDiv.innerHTML = '<div class="alert alert-warning">Por favor ingresa una clave</div>';
+        return;
+      }
+
+      boton.disabled = true;
+      boton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+      fetch('agregar_curso.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            clave_curso: clave
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            mensajeDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            setTimeout(() => {
+              window.history.replaceState({}, document.title, window.location.pathname);
+              window.location.reload();
+            }, 2000);
+          } else {
+            mensajeDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+          }
+        })
+        .catch(() => {
+          mensajeDiv.innerHTML = '<div class="alert alert-danger">Error en la conexión</div>';
+        })
+        .finally(() => {
+          boton.disabled = false;
+          boton.innerHTML = '<i class="fas fa-plus"></i> Agregar Curso';
+        });
+    });
+
+    formDocumento.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const btn = this.querySelector('button[type="submit"]');
+      const div = document.getElementById('msgDocumento');
+      const textoOriginal = btn.innerHTML;
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+
+      fetch('subir_documento.php', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(d => {
+          div.innerHTML = `<div class="alert alert-${d.success ? 'success' : 'danger'}">${d.message}</div>`;
+          if (d.success) setTimeout(() => location.reload(), 1000);
+        })
+        .catch(() => {
+          div.innerHTML = '<div class="alert alert-danger">Error en la conexión</div>';
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.innerHTML = textoOriginal;
+        });
+    });
+
+    toggleCedula.addEventListener('click', function() {
+      const input = document.getElementById('cedulaInput');
+      const icon = this.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
   });
 </script>
+
 <?php include '../Modulos/Footer.php'; ?>
