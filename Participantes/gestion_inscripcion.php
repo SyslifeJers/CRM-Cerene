@@ -28,6 +28,7 @@ try {
             WHERE id_inscripcion = ?");
         $stmt->bind_param("dsi", $monto, $fecha, $id_inscripcion);
         $stmt->execute();
+        $database->generarClaveCertificadoInscripcion($id_inscripcion);
         
         echo json_encode([
             'success' => true,
@@ -89,7 +90,7 @@ $stmt->bind_param("si", $nuevo_estado, $id_inscripcion);
 $stmt->execute();
 
 // 3. Si cambia de 'pagos_programados' a 'pago_validado', sumar y actualizar
-if ($estado_actual === 'pagos_programados' && $nuevo_estado === 'pago_validado') {
+if (in_array($estado_actual, ['pagos_programados', 'pagos programados'], true) && $nuevo_estado === 'pago_validado') {
     $sqlSuma = "SELECT SUM(monto_pagado) AS total_pagado 
                 FROM comprobantes_inscripcion 
                 WHERE validado = 1 AND id_inscripcion = ?";
@@ -104,6 +105,10 @@ if ($estado_actual === 'pagos_programados' && $nuevo_estado === 'pago_validado')
     $stmtUpdate = $conn->prepare($sqlUpdateMonto);
     $stmtUpdate->bind_param("di", $total_pagado, $id_inscripcion);
     $stmtUpdate->execute();
+}
+
+if ($nuevo_estado === 'pago_validado') {
+    $database->generarClaveCertificadoInscripcion($id_inscripcion);
 }
         echo json_encode([
             'success' => true,
@@ -242,11 +247,6 @@ if ($estado_actual === 'pagos_programados' && $nuevo_estado === 'pago_validado')
 
         if (!in_array($estatus, $estatusPermitidos, true)) {
             throw new Exception('Estatus de certificado no válido');
-        }
-
-        $columnResult = $database->getConnection()->query("SHOW COLUMNS FROM inscripciones LIKE 'estatus_certificado'");
-        if (!$columnResult || $columnResult->num_rows === 0) {
-            throw new Exception('Falta ejecutar la migración de estatus_certificado');
         }
 
         $stmt = $database->getConnection()->prepare("UPDATE inscripciones SET estatus_certificado = ? WHERE id_inscripcion = ?");

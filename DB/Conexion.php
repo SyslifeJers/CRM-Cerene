@@ -33,6 +33,75 @@ class Database
             $this->conn->close();
         }
     }
+
+    public function generarClaveCertificadoInscripcion($id_inscripcion)
+    {
+        $id_inscripcion = (int) $id_inscripcion;
+        if ($id_inscripcion <= 0) {
+            return null;
+        }
+
+        $stmt = $this->conn->prepare("SELECT i.id_participante, c.clave_certificado
+            FROM inscripciones i
+            INNER JOIN cursos c ON c.id_curso = i.id_curso
+            WHERE i.id_inscripcion = ?");
+        $stmt->bind_param("i", $id_inscripcion);
+        $stmt->execute();
+        $registro = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$registro) {
+            return null;
+        }
+
+        $prefijo = trim((string) $registro['clave_certificado']);
+        $clave = $prefijo !== ''
+            ? $prefijo . '-' . str_pad((string) $registro['id_participante'], 4, '0', STR_PAD_LEFT)
+            : null;
+
+        $stmt = $this->conn->prepare("UPDATE inscripciones SET clave_certificado = ? WHERE id_inscripcion = ?");
+        $stmt->bind_param("si", $clave, $id_inscripcion);
+        $stmt->execute();
+        $stmt->close();
+
+        return $clave;
+    }
+
+    public function regenerarClavesCertificadoCurso($id_curso)
+    {
+        $id_curso = (int) $id_curso;
+        if ($id_curso <= 0) {
+            return 0;
+        }
+
+        $stmt = $this->conn->prepare("SELECT clave_certificado FROM cursos WHERE id_curso = ?");
+        $stmt->bind_param("i", $id_curso);
+        $stmt->execute();
+        $curso = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$curso || trim((string) $curso['clave_certificado']) === '') {
+            $stmt = $this->conn->prepare("UPDATE inscripciones SET clave_certificado = NULL WHERE id_curso = ?");
+            $stmt->bind_param("i", $id_curso);
+            $stmt->execute();
+            $afectadas = $stmt->affected_rows;
+            $stmt->close();
+
+            return $afectadas;
+        }
+
+        $prefijo = trim((string) $curso['clave_certificado']);
+        $stmt = $this->conn->prepare("UPDATE inscripciones
+            SET clave_certificado = CONCAT(?, '-', LPAD(id_participante, 4, '0'))
+            WHERE id_curso = ?");
+        $stmt->bind_param("si", $prefijo, $id_curso);
+        $stmt->execute();
+        $afectadas = $stmt->affected_rows;
+        $stmt->close();
+
+        return $afectadas;
+    }
+
     public function getCursosTable($filtro_activos = true)
     {
         // Inicializar HTML con DataTable
@@ -60,6 +129,7 @@ class Database
                 c.cupo_maximo,
                 c.activo,
                 c.clave_curso,
+                c.clave_certificado,
                 c.link_inscripcion,
                 COUNT(i.id_inscripcion) as inscritos,
                 c.requiere_pago
@@ -108,7 +178,8 @@ class Database
                 <td>' . $row["id_curso"] . '</td>
                 <td>
                     <strong>' . htmlspecialchars($row["nombre_curso"]) . '</strong><br>
-                    <small class="text-muted">Clave: ' . $row['clave_curso'] . '</small>
+                    <small class="text-muted">Clave: ' . htmlspecialchars($row['clave_curso']) . '</small>' .
+                    (!empty($row['clave_certificado']) ? '<br><small class="text-muted">Certificado: ' . htmlspecialchars($row['clave_certificado']) . '-0000</small>' : '') . '
                 </td>
                 <td>
                     <strong>Inicio:</strong> ' . $fecha_inicio . '<br>
@@ -347,26 +418,38 @@ class Database
                     <th>Participante</th>
                     <th>Fecha Inscripción</th>
                     <th>Estado</th>
-                    <th>Método Pago</th>
-                    <th>Monto</th>
+                    <th>Pago</th>
                     <th>Comprobante</th>
-                    <th>Documento</th>
-                    <th>Certificado</th>
+                    <th class="text-center" style="min-width: 110px;">Documento</th>
+                    <th class="text-center" style="min-width: 190px;">Certificado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>';
 
-        $tieneEstatusCertificado = false;
-        $columnResult = $this->conn->query("SHOW COLUMNS FROM inscripciones LIKE 'estatus_certificado'");
-        if ($columnResult && $columnResult->num_rows > 0) {
-            $tieneEstatusCertificado = true;
+        $tieneCertificadosEnvios = false;
+        $certificadosTableResult = $this->conn->query("SHOW TABLES LIKE 'certificados_envios'");
+        if ($certificadosTableResult && $certificadosTableResult->num_rows > 0) {
+            $tieneCertificadosEnvios = true;
         }
 
         // Consulta mejorada para incluir comprobante_path
-        $estatusCertificadoSelect = $tieneEstatusCertificado
-            ? 'i.estatus_certificado'
-            : "'pendiente' AS estatus_certificado";
+        $estatusCertificadoSelect = 'i.estatus_certificado';
+        $claveCertificadoInscripcionSelect = 'i.clave_certificado AS clave_certificado_inscripcion';
+        $certificadoEnvioSelect = $tieneCertificadosEnvios
+            ? 'cert.estatus AS certificado_envio_estatus, cert.mensaje AS certificado_envio_mensaje, cert.nombre_archivo AS certificado_nombre_archivo, cert.fecha_generacion AS certificado_fecha_generacion, cert.fecha_envio AS certificado_fecha_envio'
+            : 'NULL AS certificado_envio_estatus, NULL AS certificado_envio_mensaje, NULL AS certificado_nombre_archivo, NULL AS certificado_fecha_generacion, NULL AS certificado_fecha_envio';
+        $certificadoEnvioJoin = $tieneCertificadosEnvios
+            ? "LEFT JOIN (
+                    SELECT ce.*
+                    FROM certificados_envios ce
+                    INNER JOIN (
+                        SELECT id_inscripcion, MAX(id_envio) AS id_envio
+                        FROM certificados_envios
+                        GROUP BY id_inscripcion
+                    ) ult ON ult.id_envio = ce.id_envio
+                ) cert ON cert.id_inscripcion = i.id_inscripcion"
+            : '';
         $query = "SELECT 
                 i.id_inscripcion, 
                 i.id_curso,
@@ -374,12 +457,17 @@ class Database
                 i.IdOpcionPago as id_opcion_pago,
                 i.estado,
                 $estatusCertificadoSelect,
+                $claveCertificadoInscripcionSelect,
                 i.metodo_pago,
                 i.monto_pagado,
                 i.nota,
                 i.comprobante_path,
                 i.fecha_inscripcion,
                 i.fecha_cambio_estado,
+                pagos.metodos_pago,
+                pagos.monto_reportado,
+                pagos.monto_validado,
+                $certificadoEnvioSelect,
                 c.nombre_curso,
                 p.nombre as nombre_participante,
                 p.apellido as apellido_participante,
@@ -389,7 +477,17 @@ class Database
                 p.titulo
               FROM inscripciones i
               LEFT JOIN cursos c ON i.id_curso = c.id_curso
-              LEFT JOIN participantes p ON i.id_participante = p.id_participante";
+              LEFT JOIN participantes p ON i.id_participante = p.id_participante
+              LEFT JOIN (
+                    SELECT
+                        id_inscripcion,
+                        GROUP_CONCAT(DISTINCT metodo_pago ORDER BY metodo_pago SEPARATOR ', ') AS metodos_pago,
+                        SUM(IFNULL(monto_pagado, 0)) AS monto_reportado,
+                        SUM(CASE WHEN validado = 1 THEN IFNULL(monto_pagado, 0) ELSE 0 END) AS monto_validado
+                    FROM comprobantes_inscripcion
+                    GROUP BY id_inscripcion
+              ) pagos ON pagos.id_inscripcion = i.id_inscripcion
+              $certificadoEnvioJoin";
 
         if ($id_curso !== null) {
             $query .= " WHERE i.id_curso = " . intval($id_curso);
@@ -473,9 +571,55 @@ class Database
                 $certificadoLabel = $certificadoLabels[$estatusCertificado] ?? $estatusCertificado;
                 $certificadoClase = $certificadoClases[$estatusCertificado] ?? 'bg-secondary';
 
+                $estatusEnvioCertificado = trim((string) ($row['certificado_envio_estatus'] ?? ''));
+                $estatusEnvioKey = strtolower($estatusEnvioCertificado);
+                $envioCertificadoClases = [
+                    'enviado' => 'bg-success',
+                    'reenviado' => 'bg-info',
+                    'generado' => 'bg-primary',
+                    'pendiente' => 'bg-warning text-dark',
+                    'error' => 'bg-danger',
+                    'fallido' => 'bg-danger',
+                    'problema' => 'bg-danger'
+                ];
+                $envioCertificadoClase = $envioCertificadoClases[$estatusEnvioKey] ?? ($estatusEnvioCertificado !== '' ? 'bg-secondary' : 'bg-warning text-dark');
+                $envioCertificadoLabel = $estatusEnvioCertificado !== '' ? ucfirst($estatusEnvioCertificado) : 'Sin envío';
+                $fechaEnvioCertificado = !empty($row['certificado_fecha_envio'])
+                    ? date('d/m/Y H:i', strtotime($row['certificado_fecha_envio']))
+                    : (!empty($row['certificado_fecha_generacion']) ? date('d/m/Y H:i', strtotime($row['certificado_fecha_generacion'])) : '');
+                $archivoCertificado = !empty($row['certificado_nombre_archivo'])
+                    ? '<small class="d-block text-muted">' . htmlspecialchars($row['certificado_nombre_archivo']) . '</small>'
+                    : '';
+                $mensajeCertificadoTexto = (string) ($row['certificado_envio_mensaje'] ?? '');
+                $mensajeCertificadoCorto = strlen($mensajeCertificadoTexto) > 60
+                    ? substr($mensajeCertificadoTexto, 0, 60) . '...'
+                    : $mensajeCertificadoTexto;
+                $mensajeCertificado = $mensajeCertificadoTexto !== ''
+                    ? '<small class="d-block text-muted" title="' . htmlspecialchars($mensajeCertificadoTexto, ENT_QUOTES) . '">' . htmlspecialchars($mensajeCertificadoCorto) . '</small>'
+                    : '';
+                $claveCertificadoControl = !empty($row['clave_certificado_inscripcion'])
+                    ? '<small class="d-block text-primary fw-bold mt-1">Clave: ' . htmlspecialchars($row['clave_certificado_inscripcion']) . '</small>'
+                    : '';
+
+                if ($row['id_opcion_pago']) {
+                    $metodosPago = $row['metodos_pago'] ?: 'Pagos diferidos';
+                    $montoPago = $row['monto_reportado'] !== null ? (float) $row['monto_reportado'] : 0;
+                    $montoValidado = $row['monto_validado'] !== null ? (float) $row['monto_validado'] : 0;
+                    $pagoHtml = '<div><i class="fas fa-calendar-alt text-info"></i> ' . htmlspecialchars($metodosPago) . '</div>';
+                    $pagoHtml .= '<strong>' . ($montoPago > 0 ? '$' . number_format($montoPago, 2) : 'N/A') . '</strong>';
+                    if ($montoValidado > 0) {
+                        $pagoHtml .= '<small class="d-block text-success">Validado: $' . number_format($montoValidado, 2) . '</small>';
+                    }
+                } else {
+                    $pagoHtml = $row['metodo_pago']
+                        ? '<div>' . htmlspecialchars($row['metodo_pago']) . '</div>'
+                        : '<span class="text-muted"><i class="fas fa-ban"></i> N/A</span>';
+                    $pagoHtml .= '<strong class="d-block">' . ($row['monto_pagado'] ? '$' . number_format($row['monto_pagado'], 2) : 'N/A') . '</strong>';
+                }
+
                 // Documento de estudios
                 $botonDocumento = $row['documento']
-                    ? '<a href="../documentos/' . $row['documento'] . '" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-file"></i> Ver</a>'
+                    ? '<a href="../documentos/' . htmlspecialchars($row['documento'], ENT_QUOTES) . '" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-file"></i> Ver</a>'
                     : '<span class="text-danger">No subido</span>';
 
                 $puedeIntercambiarArchivos = isset($_SESSION['rol'])
@@ -511,29 +655,28 @@ class Database
                     </span><br>
                     <small>' . $fecha_cambio . '</small>
                 </td>
-                <td>'
-                . ($row['id_opcion_pago']
-                    ? '<i class="fas fa-calendar-alt text-info"></i> Pagos diferidos'
-                    : (
-                        $row["metodo_pago"]
-                            ? '</i> ' . htmlspecialchars($row["metodo_pago"])
-                            : '<span class="text-muted"><i class="fas fa-ban"></i> N/A</span>'
-                    )
-                ) .
-                '</td>
-                <td class="text-end">' . ($row["monto_pagado"] ? '$' . number_format($row["monto_pagado"], 2) : 'N/A') . '</td>
+                <td class="text-end">' . $pagoHtml . '</td>
                 <td class="text-center">' 
                 . $Pagopendiente . ' ' .
                 $botonComprobante . '</td>
-                <td class="text-center">' . $botonDocumento . '</td>
-                <td class="text-center">
-                    <span class="badge ' . $certificadoClase . '">' . htmlspecialchars($certificadoLabel) . '</span>
-                    <select class="form-select form-select-sm mt-2 estatus-certificado" data-id="' . (int) $row['id_inscripcion'] . '" ' . (!$tieneEstatusCertificado ? 'disabled title="Ejecute la migración de estatus_certificado"' : '') . '>
+                <td class="text-center align-middle">' . $botonDocumento . '</td>
+                <td class="text-center align-middle" style="min-width: 190px;">
+                    <div class="certificado-status">
+                    <span class="badge ' . $envioCertificadoClase . '">' . htmlspecialchars($envioCertificadoLabel) . '</span>
+                    ' . ($fechaEnvioCertificado ? '<small class="d-block text-muted">' . $fechaEnvioCertificado . '</small>' : '') . '
+                    ' . $archivoCertificado . '
+                    ' . $mensajeCertificado . '
+                    ' . $claveCertificadoControl . '
+                    </div>
+                    <div class="mt-2 pt-2 border-top">
+                        <label class="form-label small text-muted mb-1">Control interno</label>
+                        <select class="form-select form-select-sm estatus-certificado" data-id="' . (int) $row['id_inscripcion'] . '">
                         <option value="pendiente" ' . ($estatusCertificado === 'pendiente' ? 'selected' : '') . '>Pendiente</option>
                         <option value="enviado" ' . ($estatusCertificado === 'enviado' ? 'selected' : '') . '>Enviado</option>
                         <option value="problema" ' . ($estatusCertificado === 'problema' ? 'selected' : '') . '>Tiene problema</option>
                         <option value="reenviado" ' . ($estatusCertificado === 'reenviado' ? 'selected' : '') . '>Reenviado</option>
-                    </select>
+                        </select>
+                    </div>
                 </td>
                 <td class="text-center">
                     <div class="btn-group btn-group-sm">
@@ -578,7 +721,7 @@ class Database
             </tr>';
             }
         } else {
-            $html .= '<tr><td colspan="10" class="text-center">No hay inscripciones registradas' . ($id_curso ? ' para este curso' : '') . '</td></tr>';
+            $html .= '<tr><td colspan="9" class="text-center">No hay inscripciones registradas' . ($id_curso ? ' para este curso' : '') . '</td></tr>';
         }
 
         $html .= '</tbody></table></div>';

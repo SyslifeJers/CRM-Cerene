@@ -195,7 +195,7 @@ function estadoCursoParticipante($estado) {
     box-shadow: 0 18px 45px rgba(0, 0, 0, 0.2);
   }
 
-  .close-modal {
+  .modal-comprobante-content > .close-modal {
     color: #6c757d;
     float: right;
     font-size: 28px;
@@ -203,8 +203,28 @@ function estadoCursoParticipante($estado) {
     cursor: pointer;
   }
 
-  .close-modal:hover {
+  .modal-comprobante-content > .close-modal:hover {
     color: #111;
+  }
+
+  .modal-comprobante-actions {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 22px;
+  }
+
+  .modal-comprobante-actions .btn-primary {
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 10px 18px;
+  }
+
+  .modal-comprobante-actions .btn-cancel {
+    border-radius: 999px;
+    font-size: 0.85rem;
+    padding: 6px 12px;
   }
 
   @media (max-width: 767px) {
@@ -218,6 +238,21 @@ function estadoCursoParticipante($estado) {
 
     .course-actions .btn {
       width: 100%;
+    }
+
+    .modal-comprobante-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .modal-comprobante-actions .btn-primary {
+      order: 1;
+      width: 100%;
+    }
+
+    .modal-comprobante-actions .btn-cancel {
+      align-self: center;
+      order: 2;
     }
   }
 </style>
@@ -495,9 +530,12 @@ function estadoCursoParticipante($estado) {
         <small class="form-text text-muted">Formatos aceptados: PDF, JPG, PNG. Máximo 2MB.</small>
       </div>
 
-      <div class="form-group text-right mb-0">
-        <button type="button" class="btn btn-sm btn-secondary close-modal">Cancelar</button>
-        <button type="submit" class="btn btn-sm btn-primary">Enviar Comprobante</button>
+      <div class="form-group modal-comprobante-actions mb-0">
+
+        <button type="button" class="btn btn-sm btn-outline-secondary btn-cancel close-modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">
+          <i class="fas fa-paper-plane"></i> Enviar comprobante
+        </button>
       </div>
     </form>
   </div>

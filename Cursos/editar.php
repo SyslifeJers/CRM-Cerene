@@ -29,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $costo = (float)$_POST['costo'];
     $cupo_maximo = (int)$_POST['cupo_maximo'];
     $requiere_pago = isset($_POST['requiere_pago']) ? 1 : 0;
+    $clave_certificado_anterior = trim((string) ($curso['clave_certificado'] ?? ''));
+    $clave_certificado = trim($_POST['clave_certificado'] ?? '');
+    $clave_certificado = $clave_certificado !== '' ? strtoupper($clave_certificado) : null;
 
     try {
         $stmt = $database->getConnection()->prepare("UPDATE cursos SET 
@@ -38,10 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fecha_fin = ?, 
             costo = ?, 
             cupo_maximo = ?, 
-            requiere_pago = ?
+            requiere_pago = ?,
+            clave_certificado = ?
             WHERE id_curso = ?");
 
-        $stmt->bind_param("ssssdiii",
+        $stmt->bind_param("ssssdiisi",
             $nombre_curso,
             $descripcion,
             $fecha_inicio,
@@ -49,10 +53,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $costo,
             $cupo_maximo,
             $requiere_pago,
+            $clave_certificado,
             $id_curso
         );
 
         if ($stmt->execute()) {
+            if ($clave_certificado_anterior !== (string) $clave_certificado) {
+                $database->regenerarClavesCertificadoCurso($id_curso);
+            }
+
             $_SESSION['mensaje_exito'] = "Curso actualizado correctamente.";
             header("Location: index.php");
             exit();
@@ -87,6 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="mb-3">
                         <label for="descripcion" class="form-label">Descripción</label>
                         <textarea class="form-control" id="descripcion" name="descripcion" rows="3"><?= htmlspecialchars($curso['descripcion']) ?></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="clave_certificado" class="form-label">Clave base para certificados</label>
+                        <input type="text" class="form-control" id="clave_certificado" name="clave_certificado" value="<?= htmlspecialchars($curso['clave_certificado'] ?? '') ?>" placeholder="Ej. CPT-26">
+                        <small class="form-text text-muted">Opcional. Al cambiarla se regeneran las claves de certificado de las inscripciones del curso.</small>
                     </div>
                 </div>
 

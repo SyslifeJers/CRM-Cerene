@@ -10,6 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $costo = (float)$_POST['costo']; // Asegurar que es float
     $cupo_maximo = (int)$_POST['cupo_maximo']; // Asegurar que es int
     $requiere_pago = isset($_POST['requiere_pago']) ? 1 : 0;
+    $clave_certificado = trim($_POST['clave_certificado'] ?? '');
+    $clave_certificado = $clave_certificado !== '' ? strtoupper($clave_certificado) : null;
     
     // Generar clave única para el curso
     $clave_curso = substr(strtoupper(uniqid()), 0, 8);
@@ -17,11 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Consulta corregida con parámetros exactos
         $stmt = $database->getConnection()->prepare("INSERT INTO cursos 
-            (nombre_curso, descripcion, fecha_inicio, fecha_fin, costo, cupo_maximo, clave_curso, requiere_pago) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            (nombre_curso, descripcion, fecha_inicio, fecha_fin, costo, cupo_maximo, clave_curso, clave_certificado, requiere_pago) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         
         // Cadena de tipos corregida (7 parámetros: 5 strings, 1 double, 1 integer, 1 integer)
-        $stmt->bind_param("ssssdisi", 
+        $stmt->bind_param("ssssdissi", 
             $nombre_curso, 
             $descripcion, 
             $fecha_inicio, 
@@ -29,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $costo, 
             $cupo_maximo, 
             $clave_curso, 
+            $clave_certificado,
             $requiere_pago
         );
         
@@ -81,6 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="mb-3">
                                     <label for="descripcion" class="form-label">Descripción</label>
                                     <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="clave_certificado" class="form-label">Clave base para certificados</label>
+                                    <input type="text" class="form-control" id="clave_certificado" name="clave_certificado" placeholder="Ej. CPT-26">
+                                    <small class="form-text text-muted">Opcional. Si se captura, cada inscripción validada generará una clave como CPT-26-0002.</small>
                                 </div>
                             </div>
                             

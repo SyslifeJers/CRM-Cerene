@@ -32,11 +32,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $costo = (float)$_POST['costo'];
     $cupo_maximo = (int)$_POST['cupo_maximo'];
     $requiere_pago = isset($_POST['requiere_pago']) ? 1 : 0;
+    $clave_certificado_anterior = trim((string) ($curso['clave_certificado'] ?? ''));
+    $clave_certificado = trim($_POST['clave_certificado'] ?? '');
+    $clave_certificado = $clave_certificado !== '' ? strtoupper($clave_certificado) : null;
 
-    $stmt = $conn->prepare("UPDATE cursos SET nombre_curso = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, costo = ?, cupo_maximo = ?, requiere_pago = ? WHERE id_curso = ?");
-    $stmt->bind_param("ssssdiii", $nombre_curso, $descripcion, $fecha_inicio, $fecha_fin, $costo, $cupo_maximo, $requiere_pago, $id_curso);
+    $stmt = $conn->prepare("UPDATE cursos SET nombre_curso = ?, descripcion = ?, fecha_inicio = ?, fecha_fin = ?, costo = ?, cupo_maximo = ?, requiere_pago = ?, clave_certificado = ? WHERE id_curso = ?");
+    $stmt->bind_param("ssssdiisi", $nombre_curso, $descripcion, $fecha_inicio, $fecha_fin, $costo, $cupo_maximo, $requiere_pago, $clave_certificado, $id_curso);
 
     if ($stmt->execute()) {
+        if ($clave_certificado_anterior !== (string) $clave_certificado) {
+            $database->regenerarClavesCertificadoCurso($id_curso);
+        }
+
         $_SESSION['mensaje_exito'] = "Curso actualizado correctamente.";
         header("Location: index.php");
         exit();
@@ -62,6 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="mb-3">
                         <label>Descripción</label>
                         <textarea name="descripcion" class="form-control" rows="3"><?= htmlspecialchars($curso['descripcion']) ?></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Clave base para certificados</label>
+                        <input type="text" name="clave_certificado" class="form-control" value="<?= htmlspecialchars($curso['clave_certificado'] ?? '') ?>" placeholder="Ej. CPT-26">
+                        <small class="form-text text-muted">Opcional. Al cambiarla se regeneran las claves de certificado del curso.</small>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">

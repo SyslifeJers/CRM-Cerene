@@ -43,6 +43,18 @@ $conn = $database->getConnection();
 $stmt = $conn->prepare("UPDATE comprobantes_inscripcion SET validado = ?, nota = ?, monto_pagado = ?, fecha_carga = ? WHERE id_comprobante = ?");
 $stmt->bind_param("isdsi", $validado, $nota, $monto_pagado, $fecha_carga_db, $id_comprobante);
 if ($stmt->execute()) {
+    if ($validado === 1) {
+        $stmtInscripcion = $conn->prepare("SELECT id_inscripcion FROM comprobantes_inscripcion WHERE id_comprobante = ?");
+        $stmtInscripcion->bind_param("i", $id_comprobante);
+        $stmtInscripcion->execute();
+        $registro = $stmtInscripcion->get_result()->fetch_assoc();
+        $stmtInscripcion->close();
+
+        if ($registro) {
+            $database->generarClaveCertificadoInscripcion((int) $registro['id_inscripcion']);
+        }
+    }
+
     echo json_encode(['success'=>true,'message'=>'Estado actualizado']);
 } else {
     echo json_encode(['success'=>false,'message'=>'Error al actualizar']);

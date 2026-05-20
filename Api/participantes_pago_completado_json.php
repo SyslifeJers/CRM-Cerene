@@ -16,12 +16,9 @@ if ($id_curso <= 0) {
 $database = new Database();
 $conn = $database->getConnection();
 
-$columnResult = $conn->query("SHOW COLUMNS FROM inscripciones LIKE 'estatus_certificado'");
-$estatusCertificadoSelect = ($columnResult && $columnResult->num_rows > 0)
-    ? 'i.estatus_certificado'
-    : "'pendiente' AS estatus_certificado";
-
-$stmtCurso = $conn->prepare('SELECT id_curso, nombre_curso FROM cursos WHERE id_curso = ?');
+$estatusCertificadoSelect = 'i.estatus_certificado';
+$claveCertificadoSelect = 'i.clave_certificado AS clave_certificado';
+$stmtCurso = $conn->prepare("SELECT id_curso, nombre_curso, clave_certificado FROM cursos WHERE id_curso = ?");
 $stmtCurso->bind_param('i', $id_curso);
 $stmtCurso->execute();
 $curso = $stmtCurso->get_result()->fetch_assoc();
@@ -41,6 +38,7 @@ $sql = "SELECT
             i.id_participante,
             i.estado,
             $estatusCertificadoSelect,
+            $claveCertificadoSelect,
             i.monto_pagado,
             i.fecha_inscripcion,
             i.fecha_cambio_estado,
@@ -88,6 +86,7 @@ while ($row = $result->fetch_assoc()) {
         'documento' => $row['documento'],
         'estado_pago' => $row['estado'],
         'estatus_certificado' => $row['estatus_certificado'],
+        'clave_certificado' => $row['clave_certificado'],
         'monto_pagado' => (float) $row['monto_pagado'],
         'total_validado' => (float) $row['total_validado'],
         'costo_curso' => (float) $row['costo'],
@@ -103,7 +102,8 @@ echo json_encode([
     'success' => true,
     'curso' => [
         'id_curso' => (int) $curso['id_curso'],
-        'nombre_curso' => $curso['nombre_curso']
+        'nombre_curso' => $curso['nombre_curso'],
+        'clave_certificado' => $curso['clave_certificado']
     ],
     'total' => count($participantes),
     'participantes' => $participantes

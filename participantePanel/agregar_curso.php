@@ -93,6 +93,10 @@ try {
     if (!$stmt_insert) throw new Exception("Error al preparar inserción: " . $conn->error);
     $stmt_insert->bind_param("iisi", $id_curso, $id_participante, $estado, $opcion_pago_id);
     if (!$stmt_insert->execute()) throw new Exception('Error al registrar la inscripción: ' . $stmt_insert->error);
+    $id_inscripcion = $stmt_insert->insert_id;
+    if ($estado === 'pago_validado') {
+        $database->generarClaveCertificadoInscripcion($id_inscripcion);
+    }
 
     // 7. Éxito
     $mensaje = $curso['requiere_pago'] 

@@ -128,6 +128,11 @@ $pass_hash = password_hash($pass_plain, PASSWORD_DEFAULT);
             if (!$stmt_inscripcion->execute()) {
                 throw new Exception("Error al inscribir: " . $stmt_inscripcion->error);
             }
+            $id_inscripcion = $stmt_inscripcion->insert_id;
+            if ($estado === 'pago_validado') {
+                $database->generarClaveCertificadoInscripcion($id_inscripcion);
+            }
+
             $_SESSION['participante_id'] = $id_participante;
             $_SESSION['email'] = $email;
             $_SESSION['nombre'] = $nombre . ' ' . $apellido;

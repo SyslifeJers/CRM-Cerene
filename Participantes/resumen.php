@@ -7,6 +7,31 @@ $conn = $database->getConnection();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
 
+    $accion = $_POST['accion'] ?? 'quitar_curso';
+    if ($accion === 'actualizar_participante') {
+        $id_participante = isset($_POST['id_participante']) ? intval($_POST['id_participante']) : 0;
+        $nombre = trim($_POST['nombre'] ?? '');
+        $apellido = trim($_POST['apellido'] ?? '');
+        $telefono = trim($_POST['telefono'] ?? '');
+
+        if ($id_participante <= 0 || $nombre === '' || $apellido === '') {
+            echo json_encode(['success' => false, 'message' => 'Nombre y apellido son requeridos']);
+            exit();
+        }
+
+        $stmt = $conn->prepare("UPDATE participantes SET nombre = ?, apellido = ?, telefono = ? WHERE id_participante = ?");
+        $stmt->bind_param("sssi", $nombre, $apellido, $telefono, $id_participante);
+        $stmt->execute();
+        $actualizado = $stmt->affected_rows >= 0;
+        $stmt->close();
+
+        echo json_encode([
+            'success' => $actualizado,
+            'message' => $actualizado ? 'Datos del participante actualizados' : 'No se pudo actualizar el participante'
+        ]);
+        exit();
+    }
+
     $id_inscripcion = isset($_POST['id_inscripcion']) ? intval($_POST['id_inscripcion']) : 0;
     $id_participante = isset($_POST['id_participante']) ? intval($_POST['id_participante']) : 0;
 
@@ -97,7 +122,12 @@ $badgeClass = [
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h4 class="card-title">Resumen del cliente</h4>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Resumen del cliente</h4>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditarParticipante">
+                        <i class="fas fa-edit"></i> Editar datos
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -179,10 +209,73 @@ $badgeClass = [
     </div>
 </div>
 
+<div class="modal fade" id="modalEditarParticipante" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar participante</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="formEditarParticipante">
+                <div class="modal-body">
+                    <input type="hidden" name="accion" value="actualizar_participante">
+                    <input type="hidden" name="id_participante" value="<?php echo (int) $participante['id_participante']; ?>">
+                    <div class="mb-3">
+                        <label class="form-label" for="nombreParticipante">Nombre</label>
+                        <input type="text" class="form-control" id="nombreParticipante" name="nombre" value="<?php echo htmlspecialchars($participante['nombre']); ?>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="apellidoParticipante">Apellido</label>
+                        <input type="text" class="form-control" id="apellidoParticipante" name="apellido" value="<?php echo htmlspecialchars($participante['apellido']); ?>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="telefonoParticipante">Teléfono</label>
+                        <input type="text" class="form-control" id="telefonoParticipante" name="telefono" value="<?php echo htmlspecialchars($participante['telefono']); ?>">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?php include '../Modulos/Footer.php'; ?>
 
 <script>
 $(function () {
+    $('#formEditarParticipante').submit(function (e) {
+        e.preventDefault();
+        const boton = $(this).find('button[type="submit"]');
+        const textoOriginal = boton.html();
+
+        boton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+
+        $.ajax({
+            url: 'resumen.php',
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function (res) {
+                if (res.success) {
+                    Swal.fire('Éxito', res.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', res.message, 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Error', 'No se pudo actualizar el participante.', 'error');
+            },
+            complete: function () {
+                boton.prop('disabled', false).html(textoOriginal);
+            }
+        });
+    });
+
     $('.quitar-curso').click(function () {
         const idInscripcion = $(this).data('id');
         const curso = $(this).data('curso');
